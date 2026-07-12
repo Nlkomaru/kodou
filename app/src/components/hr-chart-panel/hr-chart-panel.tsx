@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { formatTime } from "@/lib/heart-rate";
 import type { MetricPoint } from "@/lib/heart-rate-types";
 
@@ -24,6 +25,7 @@ type HrChartPanelProps = {
   points: MetricPoint[];
   stats: HrChartPanelStats;
   color?: string;
+  smooth?: boolean;
 };
 
 const STAT_LABELS: { key: keyof HrChartPanelStats; label: string }[] = [
@@ -58,6 +60,7 @@ function smoothValues(points: MetricPoint[]): MetricPoint[] {
 }
 
 // 折れ線をCatmull-Romスプライン相当の3次ベジェに変換して、角のない滑らかな曲線にする。
+// 折れ線をCatmull-Romスプライン相当の3次ベジェに変換して、角のない滑らかな曲線にする。
 function smoothPath(coords: [number, number][]) {
   if (coords.length === 0) return "";
   if (coords.length === 1) return `M ${coords[0][0].toFixed(2)} ${coords[0][1].toFixed(2)}`;
@@ -79,7 +82,19 @@ function smoothPath(coords: [number, number][]) {
   return path;
 }
 
-function chartGeometry(rawPoints: MetricPoint[]) {
+// 単純な折れ線パスを生成する。
+function linePath(coords: [number, number][]) {
+  if (coords.length === 0) return "";
+  if (coords.length === 1) return `M ${coords[0][0].toFixed(2)} ${coords[0][1].toFixed(2)}`;
+
+  let path = `M ${coords[0][0].toFixed(2)} ${coords[0][1].toFixed(2)}`;
+  for (let index = 1; index < coords.length; index += 1) {
+    path += ` L ${coords[index][0].toFixed(2)} ${coords[index][1].toFixed(2)}`;
+  }
+  return path;
+}
+
+function chartGeometry(rawPoints: MetricPoint[], smooth = true) {
   const points = smoothValues(rawPoints);
   const plotWidth = CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right;
   const plotHeight = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
@@ -96,7 +111,9 @@ function chartGeometry(rawPoints: MetricPoint[]) {
 
   const xFor = (timestamp: number) => CHART_PADDING.left + ((timestamp - start) / timeRange) * plotWidth;
   const yFor = (value: number) => CHART_PADDING.top + (1 - (value - chartMin) / chartRange) * plotHeight;
-  const path = smoothPath(points.map((point) => [xFor(point.timestamp), yFor(point.value)]));
+  const path = smooth
+    ? smoothPath(points.map((point) => [xFor(point.timestamp), yFor(point.value)]))
+    : linePath(points.map((point) => [xFor(point.timestamp), yFor(point.value)]));
   const baselineY = CHART_HEIGHT - CHART_PADDING.bottom;
   const areaPath =
     points.length > 0
@@ -122,18 +139,20 @@ export function HrChartPanel({
   points,
   stats,
   color = "#dc3e42",
+  smooth = true,
 }: HrChartPanelProps) {
   const gradientId = useId();
   const [expanded, setExpanded] = useState(true);
-  const { areaPath, baselineY, gridValues, path, timeTicks, xFor, yFor } = chartGeometry(points);
+  const { areaPath, baselineY, gridValues, path, timeTicks, xFor, yFor } = chartGeometry(points, smooth);
 
   return (
     <div className="flex min-w-0 flex-col rounded-[14px] bg-background p-4">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => setExpanded((current) => !current)}
         aria-expanded={expanded}
-        className={`flex w-full items-center justify-between ${expanded ? "pb-3" : ""}`}
+        className={`h-auto w-full justify-between rounded-lg px-1.5 hover:bg-transparent aria-expanded:bg-transparent aria-expanded:text-foreground active:bg-transparent active:translate-y-0 ${expanded ? "pb-3" : ""}`}
       >
         <span className="flex items-center gap-1.5 text-xl font-semibold text-foreground">
           <ChevronDown
@@ -146,7 +165,7 @@ export function HrChartPanel({
           {current != null ? Math.round(current) : "--"}{" "}
           <span className="text-sm font-normal text-secondary-foreground">{unit}</span>
         </span>
-      </button>
+      </Button>
       {expanded && (
       <svg
         className="block h-auto w-full"
@@ -186,7 +205,7 @@ export function HrChartPanel({
             ))}
             <path d={areaPath} fill={`url(#${gradientId})`} />
             <path
-              className="fill-none stroke-[0.5] [stroke-linecap:round] [stroke-linejoin:round]"
+              className={smooth ? "fill-none stroke-[0.5] [stroke-linecap:round] [stroke-linejoin:round]" : "fill-none stroke-[0.7]"}
               d={path}
               stroke={color}
             />

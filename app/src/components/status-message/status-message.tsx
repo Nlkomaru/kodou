@@ -1,4 +1,5 @@
 import { useAtomValue } from "jotai";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { errorAtom, statusAtom } from "@/state/heart-rate";
 
 export function StatusMessage() {
@@ -7,8 +8,14 @@ export function StatusMessage() {
 
   return (
     <>
-      <div className="rounded-xl bg-muted/40 px-4 py-3 text-sm font-bold text-muted-foreground">{status.message}</div>
-      {error && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm font-bold text-destructive">{error}</div>}
+      <Alert>
+        <AlertDescription className="font-bold text-muted-foreground">{status.message}</AlertDescription>
+      </Alert>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription className="font-bold">{error}</AlertDescription>
+        </Alert>
+      )}
     </>
   );
 }

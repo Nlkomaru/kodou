@@ -2,7 +2,9 @@ import { useAtom, useSetAtom, useAtomValue } from "jotai";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { OSC_PARAM_META } from "@/lib/osc";
 import {
   beatPulseMsAtom,
@@ -42,16 +44,16 @@ export function OscPanel() {
             <CardTitle className="text-base">OSC送信</CardTitle>
             <CardDescription className="mt-1">VRChatのAvatar Parameter OSCへ心拍データを送ります</CardDescription>
           </div>
-          <label className="flex items-center gap-2 text-sm font-bold">
-            <Checkbox checked={enabled} onCheckedChange={(value) => setEnabled(value === true)} />
+          <Label className="text-sm font-bold">
+            <Switch checked={enabled} onCheckedChange={(value) => setEnabled(value === true)} />
             送信を有効化
-          </label>
+          </Label>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1">
-            <span className="text-xs font-bold text-muted-foreground">送信先 (ip:port)</span>
+            <Label className="text-xs font-bold text-muted-foreground">送信先 (ip:port)</Label>
             <Input
               value={target}
               onChange={(event) => setTarget(event.target.value)}
@@ -60,7 +62,7 @@ export function OscPanel() {
             />
           </div>
           <div className="grid gap-1">
-            <span className="text-xs font-bold text-muted-foreground">平均窓 (ms)</span>
+            <Label className="text-xs font-bold text-muted-foreground">平均窓 (ms)</Label>
             <Input
               type="number"
               min={1000}
@@ -74,7 +76,7 @@ export function OscPanel() {
 
         <div className="grid gap-3 sm:grid-cols-4">
           <div className="grid gap-1">
-            <span className="text-xs font-bold text-muted-foreground">BPM下限</span>
+            <Label className="text-xs font-bold text-muted-foreground">BPM下限</Label>
             <Input
               type="number"
               value={bounds.min}
@@ -83,7 +85,7 @@ export function OscPanel() {
             />
           </div>
           <div className="grid gap-1">
-            <span className="text-xs font-bold text-muted-foreground">BPM上限</span>
+            <Label className="text-xs font-bold text-muted-foreground">BPM上限</Label>
             <Input
               type="number"
               value={bounds.max}
@@ -92,7 +94,7 @@ export function OscPanel() {
             />
           </div>
           <div className="grid gap-1">
-            <span className="text-xs font-bold text-muted-foreground">HRFloatの範囲</span>
+            <Label className="text-xs font-bold text-muted-foreground">HRFloatの範囲</Label>
             <Select value={floatMode} onValueChange={(value) => setFloatMode(value as "signed" | "unsigned")} disabled={!enabled}>
               <SelectTrigger className="h-9">
                 <SelectValue />
@@ -104,7 +106,7 @@ export function OscPanel() {
             </Select>
           </div>
           <div className="grid gap-1">
-            <span className="text-xs font-bold text-muted-foreground">BeatPulse幅 (ms)</span>
+            <Label className="text-xs font-bold text-muted-foreground">BeatPulse幅 (ms)</Label>
             <Input
               type="number"
               min={20}
@@ -119,7 +121,7 @@ export function OscPanel() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1">
-            <span className="text-xs font-bold text-muted-foreground">RR Twitchしきい値 (ms)</span>
+            <Label className="text-xs font-bold text-muted-foreground">RR Twitchしきい値 (ms)</Label>
             <Input
               type="number"
               min={5}
@@ -130,24 +132,24 @@ export function OscPanel() {
             />
           </div>
           <div className="flex items-end gap-4">
-            <label className="flex items-center gap-2 text-sm font-bold">
-              <Checkbox checked={ironHeart} onCheckedChange={(value) => setIronHeart(value === true)} disabled={!enabled} />
+            <Label className="text-sm font-bold">
+              <Switch checked={ironHeart} onCheckedChange={(value) => setIronHeart(value === true)} disabled={!enabled} />
               iron-heart互換
-            </label>
-            <label className="flex items-center gap-2 text-sm font-bold">
-              <Checkbox checked={vrcosc} onCheckedChange={(value) => setVrcosc(value === true)} disabled={!enabled} />
+            </Label>
+            <Label className="text-sm font-bold">
+              <Switch checked={vrcosc} onCheckedChange={(value) => setVrcosc(value === true)} disabled={!enabled} />
               VRCOSC互換
-            </label>
+            </Label>
           </div>
         </div>
 
         <div className="grid gap-2">
-          <span className="text-xs font-bold text-muted-foreground">送信パラメータ</span>
+          <Label className="text-xs font-bold text-muted-foreground">送信パラメータ</Label>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {OSC_PARAM_META.map((meta) => (
-              <label
+              <Label
                 key={meta.key}
-                className="flex items-center gap-2 rounded-lg bg-muted/20 p-2 ring-1 ring-border"
+                className="items-start rounded-lg bg-muted/20 p-2 ring-1 ring-border"
               >
                 <Checkbox
                   checked={params[meta.key as OscParamKey]}
@@ -159,7 +161,7 @@ export function OscPanel() {
                   <span className="font-mono text-[10px] text-muted-foreground">{meta.address}</span>
                   <span className="text-[10px] text-muted-foreground">{paramTypeLabel(meta.type)}・{meta.note}</span>
                 </span>
-              </label>
+              </Label>
             ))}
           </div>
         </div>

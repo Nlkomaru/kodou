@@ -1,4 +1,5 @@
 import { Activity, Heart } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 export interface DataHeaderProps {
   bpm: number | null;
@@ -15,7 +16,7 @@ export function DataHeader({ bpm, rrMs }: DataHeaderProps) {
           <span className="text-base leading-4 text-muted-foreground">BPM</span>
         </div>
       </div>
-      <div className="h-8 w-px self-center bg-border" aria-hidden="true" />
+      <Separator orientation="vertical" className="h-8 self-center" aria-hidden="true" />
       <div className="flex items-end gap-3">
         <Activity className="size-6 text-[#0090FF]" aria-hidden="true" />
         <div className="flex items-end gap-0.5">
