@@ -1,0 +1,8 @@
+{
+    "title": "OSC",
+    "icon": "Code",
+    "root": true,
+    "pages": [
+        "index"
+    ]
+}

@@ -1,0 +1,120 @@
+name: Build Tauri Release
+
+# release-drafter が作成したドラフトを公開すると v* タグが付き、
+# このワークフローが発火してプラットフォーム別のバイナリをビルドし、
+# そのリリースへアセットを添付する。
+# 手動で任意のタグを再ビルドしたい場合は workflow_dispatch を使う。
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Release tag to rebuild, for example v0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tauri-release-${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  resolve-tag:
+    # release イベントの tag_name と workflow_dispatch 入力を単一の出力にまとめ、
+    # 以降のジョブでトリガー種別を意識しなくて済むようにする。
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - id: resolve
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: resolve-tag
+    name: Build ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: --target universal-apple-darwin
+          - platform: ubuntu-22.04
+            args: ""
+          - platform: windows-latest
+            args: ""
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-tag.outputs.tag }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          # macOS の universal-apple-darwin は aarch64 と x86_64 の両方を必要とする。
+          # macos-latest のホストは aarch64 なので、不足する x86_64 を追加で入れる。
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin x86_64-apple-darwin' || '' }}
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libdbus-1-dev
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Preserve release body
+        # release-drafter が書いた changelog を tauri-action で上書きしないよう、
+        # 既存リリースの body/name を読み取ってそのまま渡す。
+        # タグ未公開（手動再ビルドでリリースが無い）時は空文字でフォールバックする。
+        id: release-meta
+        # windows-latest は既定が PowerShell のため、bash 構文が使えるように明示する。
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.resolve-tag.outputs.tag }}
+        run: |
+          meta="$(gh release view "$TAG" --json name,body 2>/dev/null || echo '{\"name\":\"\",\"body\":\"\"}')"
+          echo "name=$(printf '%s' "$meta" | jq -r '.name')" >> "$GITHUB_OUTPUT"
+          {
+            echo "body<<EOF"
+            printf '%s' "$meta" | jq -r '.body'
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and upload Tauri bundles
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: app
+          tagName: ${{ needs.resolve-tag.outputs.tag }}
+          releaseName: ${{ steps.release-meta.outputs.name }}
+          releaseBody: ${{ steps.release-meta.outputs.body }}
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

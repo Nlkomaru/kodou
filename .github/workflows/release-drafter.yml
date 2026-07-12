@@ -1,0 +1,24 @@
+name: Release Drafter
+
+# PR が main にマージされるたびにドラフトリリースを更新する。
+# ドラフトを公開すると v* タグが作成され、tauri-release.yml がバイナリビルドを走らせる。
+on:
+  push:
+    branches:
+      - main
+  pull_request_target:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v6
+        with:
+          config-name: release-drafter.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

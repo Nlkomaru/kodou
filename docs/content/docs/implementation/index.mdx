@@ -1,0 +1,46 @@
+---
+title: Implementation Plan
+description: Bluetooth HR acquisition implementation plan
+---
+
+# Bluetooth HR取得の実装計画
+
+`iron-heart` の方針を参考に、BLE標準の Heart Rate Service を Tauri の Rust 側で扱います。
+WebView から Web Bluetooth を直接使うのではなく、Rust 側でOSのBluetooth adapterに接続し、
+React 側へイベントとして心拍データを流します。
+
+## 1. デバイス検出
+
+- Bluetooth adapter を取得する。
+- BLE scan を開始する。
+- Heart Rate Service (`0000180d-0000-1000-8000-00805f9b34fb`) をadvertiseしているデバイスだけを一覧に出す。
+- UIではデバイス名、アドレス、RSSIを表示する。
+
+## 2. 接続と通知購読
+
+- 選択されたデバイスに接続する。
+- GATT service/characteristic をdiscoverする。
+- Heart Rate Measurement characteristic (`00002a37-0000-1000-8000-00805f9b34fb`) を探す。
+- characteristic のnotificationをsubscribeする。
+- Battery Level characteristic (`00002a19-0000-1000-8000-00805f9b34fb`) があれば、接続時と一定間隔で読む。
+
+## 3. 心拍パケット解析
+
+- 1バイト目のflagsで BPM が8-bitか16-bitかを判定する。
+- sensor contact、energy expended、RR interval の有無をflagsから読む。
+- RR interval は BLE spec に合わせて `raw / 1024 sec` としてmsへ変換する。
+- 解析結果を `heart-rate-reading` イベントとしてfrontendへ送る。
+
+## 4. UI反映
+
+- `scan_heart_rate_monitors` command でデバイス一覧を取得する。
+- `start_heart_rate_monitor` command で選択デバイスの購読を開始する。
+- `heart-rate-status` イベントで接続状態を表示する。
+- `heart-rate-reading` イベントでBPM、RR interval、battery、sensor contactを更新する。
+
+## 5. 次にやること
+
+- [ ] 実機のHRMでWindows/macOS/Linuxそれぞれのscanとsubscribe挙動を確認する。
+- [x] 接続が切れた場合の自動再接続を追加する。Rust 側で指数バックオフ（1s→最大30s）による再接続を行い、`heart-rate-status` の `reconnecting` 状態を送る。
+- [x] VRChat向けにOSC送信を追加する。Rust 側（rosc）で UDP 送信し、React 側で `/avatar/parameters/Kodou/...` の各パラメータと iron-heart/VRCOSC 互換モードを切り替えられる。詳細は [OSC送信](../osc) を参照。
+- [x] 心拍履歴を保存し、平均・最大・最小・HRVを算出する。BPM/RR 履歴から平均・最大・最小 BPM と RR 間隔の RMSSD を算出して統計表示と `Kodou/HRAverage` に使う。
