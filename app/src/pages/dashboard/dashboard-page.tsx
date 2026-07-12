@@ -67,7 +67,7 @@ export function DashboardPage() {
     <div className="flex flex-col gap-4">
       <DataHeader bpm={reading?.bpm ?? null} rrMs={latestRr != null ? Math.round(latestRr) : null} />
       <HrChartPanel title="HR" unit="bpm" current={reading?.bpm ?? null} points={bpmHistory} stats={hrStats} />
-      <HrChartPanel title="RR-interval" unit="ms" current={latestRr} points={rrHistory} stats={rrStats} color="#0090FF" />
+      <HrChartPanel title="RR-interval" unit="ms" current={latestRr} points={rrHistory} stats={rrStats} color="#0090FF" smooth={false} />
       {/* <StatusMessage /> */}
     </div>
   );

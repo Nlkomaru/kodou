@@ -1,5 +1,6 @@
 import { useAtom, useAtomValue } from "jotai";
 import { Activity } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { devicesAtom, isScanningAtom, selectedDeviceAtom, selectedDeviceIdAtom } from "@/state/heart-rate";
 
@@ -12,7 +13,7 @@ export function DevicePicker() {
   return (
     <>
       <div className="grid gap-2">
-        <span className="text-sm font-bold text-muted-foreground">デバイス</span>
+        <Label className="text-sm font-bold text-muted-foreground">デバイス</Label>
         <Select value={selectedDeviceId || undefined} onValueChange={setSelectedDeviceId} disabled={devices.length === 0 || isScanning}>
           <SelectTrigger className="h-10 w-full">
             <SelectValue placeholder="デバイス未検出" />

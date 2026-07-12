@@ -9,6 +9,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import kodouLogo from "@/assets/kodou-logo.png";
 
 export interface SidebarNavItem {
@@ -98,13 +99,14 @@ export function Sidebar({
             const Icon = item.icon;
             const isActive = item.id === activeItem;
             return (
-              <button
+              <Button
                 key={item.id}
                 type="button"
+                variant="ghost"
                 onClick={() => onNavigate?.(item.id)}
                 aria-current={isActive ? "page" : undefined}
                 className={
-                  "flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-base font-medium " +
+                  "h-auto w-full justify-start gap-3 rounded-[10px] px-3 py-2.5 text-base font-medium " +
                   (isActive
                     ? "bg-secondary text-foreground"
                     : "text-secondary-foreground hover:bg-secondary/50")
@@ -113,7 +115,7 @@ export function Sidebar({
                 <Icon className="size-4" aria-hidden="true" />
                 <span className="flex-1 text-left">{item.label}</span>
                 {isActive && <ChevronRight className="size-3" aria-hidden="true" />}
-              </button>
+              </Button>
             );
           })}
         </nav>
