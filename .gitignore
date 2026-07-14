@@ -5,6 +5,10 @@ node_modules/
 app/dist/
 app/dist-ssr/
 
+# Generated agent prompt files
+AGENTS.md
+CLAUDE.md
+
 # Docs build output
 docs/.next/
 docs/out/
