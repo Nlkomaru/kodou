@@ -12,12 +12,23 @@ export function formatRecordingDate(date: string): string {
   });
 }
 
-// 記録が終わったおおよその時刻(ファイルの最終更新時刻)。
+// 時刻の表示。「22:00」のような24時間表記に固定する(ロケールによる午前/午後表記を避ける)。
 export function formatRecordingTime(modifiedMs: number): string {
   return new Date(modifiedMs).toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
   });
+}
+
+// 記録した時間帯。各行のタイムスタンプはUTCなので、表示はここでローカル時刻に直す。
+export function formatRecordingRange(startedAtMs: number, endedAtMs: number): string {
+  return `${formatRecordingTime(startedAtMs)} - ${formatRecordingTime(endedAtMs)}`;
+}
+
+// 平均BPMは小数で届くので、他の値と揃えて整数で見せる。
+export function formatBpm(bpm: number): string {
+  return String(Math.round(bpm));
 }
 
 // ファイルサイズを人が読める単位にする。Parquetは圧縮されるためKB〜MB程度に収まる。

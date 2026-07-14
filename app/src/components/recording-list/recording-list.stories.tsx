@@ -21,6 +21,13 @@ const recordings = [
     sequence: 2,
     sizeBytes: 12_400,
     modifiedMs: new Date("2026-07-15T22:41:00").getTime(),
+    summary: {
+      startedAtMs: new Date("2026-07-15T22:03:00").getTime(),
+      endedAtMs: new Date("2026-07-15T22:41:00").getTime(),
+      minBpm: 58,
+      maxBpm: 96,
+      meanBpm: 71.4,
+    },
   },
   {
     path: "C:\\Users\\kodou\\AppData\\Roaming\\kodou\\recordings\\2026-07\\2026-07-15_1.parquet",
@@ -29,6 +36,13 @@ const recordings = [
     sequence: 1,
     sizeBytes: 843_000,
     modifiedMs: new Date("2026-07-15T20:05:00").getTime(),
+    summary: {
+      startedAtMs: new Date("2026-07-15T18:12:00").getTime(),
+      endedAtMs: new Date("2026-07-15T20:05:00").getTime(),
+      minBpm: 62,
+      maxBpm: 148,
+      meanBpm: 88.7,
+    },
   },
   {
     path: "C:\\Users\\kodou\\AppData\\Roaming\\kodou\\recordings\\2026-07\\2026-07-14_1.parquet",
@@ -37,6 +51,13 @@ const recordings = [
     sequence: 1,
     sizeBytes: 2_310_000,
     modifiedMs: new Date("2026-07-14T23:58:00").getTime(),
+    summary: {
+      startedAtMs: new Date("2026-07-14T21:30:00").getTime(),
+      endedAtMs: new Date("2026-07-14T23:58:00").getTime(),
+      minBpm: 55,
+      maxBpm: 132,
+      meanBpm: 76,
+    },
   },
 ];
 
@@ -46,10 +67,13 @@ export const Default: Story = {
   },
 };
 
-// 記録中のファイルは一覧の先頭に「記録中」バッジ付きで並ぶ。
+// 記録中のファイルはfooterが未確定で中身を読めないため、集計なし(summary: null)で並ぶ。
 export const Recording: Story = {
   args: {
-    recordings,
+    recordings: [
+      { ...recordings[0], summary: null },
+      ...recordings.slice(1),
+    ],
     activePath: recordings[0].path,
   },
 };

@@ -49,6 +49,15 @@ export type TimeDomain = {
   end: number;
 };
 
+// 記録ファイルの中身から集計した内訳。RustのRecordingSummaryと対応させる。
+export type RecordingSummary = {
+  startedAtMs: number;
+  endedAtMs: number;
+  minBpm: number;
+  maxBpm: number;
+  meanBpm: number;
+};
+
 // 保存済みの記録ファイル1件。RustのRecordingFileと対応させる。
 export type RecordingFile = {
   path: string;
@@ -57,6 +66,8 @@ export type RecordingFile = {
   sequence: number;
   sizeBytes: number;
   modifiedMs: number;
+  // 記録中のファイルは中身を読めないためnullになる。
+  summary: RecordingSummary | null;
 };
 
 export type HeartRateStats = {

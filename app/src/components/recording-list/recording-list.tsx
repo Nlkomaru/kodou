@@ -3,8 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { RecordingFile } from "@/lib/heart-rate-types";
 import {
+  formatBpm,
   formatFileSize,
   formatRecordingDate,
+  formatRecordingRange,
   formatRecordingTime,
   groupRecordingsByDate,
 } from "@/lib/recordings";
@@ -60,6 +62,8 @@ interface RecordingRowProps {
 }
 
 function RecordingRow({ recording, isRecording, onReveal }: RecordingRowProps) {
+  const { summary } = recording;
+
   return (
     <li className="flex items-center gap-3 rounded-[14px] bg-muted/40 px-4 py-3">
       <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -67,12 +71,23 @@ function RecordingRow({ recording, isRecording, onReveal }: RecordingRowProps) {
         <span className="truncate text-sm font-medium text-secondary-foreground">
           {recording.name}
         </span>
-        {/* 記録中はサイズが増え続けるため、確定済みの情報である時刻を先に置く。 */}
         <span className="text-xs text-muted-foreground">
-          {formatRecordingTime(recording.modifiedMs)} ・ {formatFileSize(recording.sizeBytes)}
+          {/* 記録中のファイルは中身を読めないので、時間帯の代わりに最終更新時刻を出す。 */}
+          {summary
+            ? formatRecordingRange(summary.startedAtMs, summary.endedAtMs)
+            : formatRecordingTime(recording.modifiedMs)}
+          {" ・ "}
+          {formatFileSize(recording.sizeBytes)}
         </span>
       </div>
-      <div className="ml-auto flex shrink-0 items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-3">
+        {summary && (
+          <dl className="flex items-end gap-3">
+            <BpmStat label="最小" value={summary.minBpm} />
+            <BpmStat label="平均" value={summary.meanBpm} />
+            <BpmStat label="最大" value={summary.maxBpm} />
+          </dl>
+        )}
         {isRecording && (
           <Badge variant="secondary" className="gap-1.5">
             <Circle className="size-2 animate-pulse fill-red-500 text-red-500" aria-hidden="true" />
@@ -90,5 +105,17 @@ function RecordingRow({ recording, isRecording, onReveal }: RecordingRowProps) {
         </Button>
       </div>
     </li>
+  );
+}
+
+// BPMの最小・平均・最大を1つ分表示する。
+function BpmStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex flex-col items-center">
+      <dt className="text-[0.625rem] leading-3 text-muted-foreground">{label}</dt>
+      <dd className="text-sm font-medium tabular-nums text-secondary-foreground">
+        {formatBpm(value)}
+      </dd>
+    </div>
   );
 }

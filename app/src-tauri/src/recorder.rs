@@ -10,9 +10,12 @@ use arrow_array::builder::{
     BooleanBuilder, Int64Builder, ListBuilder, StringBuilder, UInt16Builder, UInt32Builder,
     UInt8Builder,
 };
+use arrow_array::cast::AsArray;
+use arrow_array::types::{Int64Type, UInt16Type};
 use arrow_array::RecordBatch;
 use arrow_schema::{DataType, Field, Schema};
-use parquet::arrow::ArrowWriter;
+use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use parquet::arrow::{ArrowWriter, ProjectionMask};
 use parquet::basic::Compression;
 use parquet::file::properties::WriterProperties;
 use tauri::{AppHandle, Manager};
@@ -168,8 +171,6 @@ impl HeartRateRecorder {
 }
 
 // 履歴画面に並べる記録ファイル1件分の情報。
-// 中身(Parquet)は開かず、ファイル名とファイルシステムの情報だけで組み立てる。
-// 記録中のファイルはfooterが未確定で読めないため、ここで中身に触れない方が一覧が壊れにくい。
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecordingFile {
@@ -180,8 +181,83 @@ pub struct RecordingFile {
     pub date: String,
     pub sequence: u32,
     pub size_bytes: u64,
-    // 最終更新時刻(UTCのエポックミリ秒)。記録が終わったおおよその時刻として表示する。
+    // 最終更新時刻(UTCのエポックミリ秒)。中身を読めないファイルでも時刻を出せるように持つ。
     pub modified_ms: i64,
+    // 中身から集計した内訳。記録中のファイルはfooterが未確定で読めないためNoneになる。
+    pub summary: Option<RecordingSummary>,
+}
+
+// 記録ファイルの中身から集計した内訳。
+// 時刻は表示形式をフロントエンド(ローカル時刻)に任せるため、エポックミリ秒のまま返す。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordingSummary {
+    pub started_at_ms: i64,
+    pub ended_at_ms: i64,
+    pub min_bpm: u16,
+    pub max_bpm: u16,
+    pub mean_bpm: f64,
+}
+
+// Parquetを1回読み、記録時間の範囲とBPMの最小・最大・平均をまとめて集計する。
+// 行グループの統計は使わない。平均を出すにはどのみちbpm列を読む必要があるためで、
+// 統計の有無に振り回されるより1パスで数える方が単純で確実。
+fn read_summary(path: &Path) -> Option<RecordingSummary> {
+    let file = File::open(path).ok()?;
+    // 記録中のファイルはfooterがまだ無いのでここで失敗する。呼び出し側はNoneとして扱う。
+    let builder = ParquetRecordBatchReaderBuilder::try_new(file).ok()?;
+
+    // 必要な2列だけを読む。rr_intervals_msのようなlist列を読み飛ばせるので無駄がない。
+    let schema = builder.parquet_schema();
+    let columns: Vec<usize> = ["timestamp_ms", "bpm"]
+        .iter()
+        .map(|wanted| {
+            schema
+                .columns()
+                .iter()
+                .position(|column| column.name() == *wanted)
+        })
+        .collect::<Option<Vec<usize>>>()?;
+    let mask = ProjectionMask::leaves(schema, columns);
+    let reader = builder.with_projection(mask).build().ok()?;
+
+    let mut started_at_ms = i64::MAX;
+    let mut ended_at_ms = i64::MIN;
+    let mut min_bpm = u16::MAX;
+    let mut max_bpm = u16::MIN;
+    let mut bpm_total: u64 = 0;
+    let mut rows: u64 = 0;
+
+    for batch in reader {
+        let batch = batch.ok()?;
+        // 射影しても列の順序はスキーマ通り(timestamp_ms → bpm)。
+        let timestamps = batch.column(0).as_primitive_opt::<Int64Type>()?;
+        let bpms = batch.column(1).as_primitive_opt::<UInt16Type>()?;
+
+        for timestamp in timestamps.values() {
+            started_at_ms = started_at_ms.min(*timestamp);
+            ended_at_ms = ended_at_ms.max(*timestamp);
+        }
+        for bpm in bpms.values() {
+            min_bpm = min_bpm.min(*bpm);
+            max_bpm = max_bpm.max(*bpm);
+            bpm_total += u64::from(*bpm);
+        }
+        rows += batch.num_rows() as u64;
+    }
+
+    // 1行も無いファイル(接続直後に切れた場合など)は集計できない。
+    if rows == 0 {
+        return None;
+    }
+
+    Some(RecordingSummary {
+        started_at_ms,
+        ended_at_ms,
+        min_bpm,
+        max_bpm,
+        mean_bpm: bpm_total as f64 / rows as f64,
+    })
 }
 
 // 記録ファイルの保存先ルート(<アプリデータ>/recordings)。
@@ -244,6 +320,8 @@ fn recording_file(path: &Path) -> Option<RecordingFile> {
         sequence,
         size_bytes: metadata.len(),
         modified_ms,
+        // 読めないファイル(記録中など)も、集計なしで一覧には並べる。
+        summary: read_summary(path),
     })
 }
 
@@ -404,6 +482,33 @@ mod tests {
 
         assert_eq!(batch.num_rows(), 2);
         assert_eq!(batch.schema().field(3).name(), "rr_intervals_ms");
+
+        let _ = fs::remove_file(&path);
+    }
+
+    // 中身から記録時間の範囲とBPMの最小・最大・平均を集計できることを確認する。
+    // list列を挟んだスキーマなので、列の取り違えがあればここで落ちる。
+    #[test]
+    fn summarizes_recording_contents() {
+        let path = temp_dir().join(format!("kodou-summary-test-{}.parquet", now_ms()));
+        let mut recorder = HeartRateRecorder::with_path(path.clone()).expect("create recorder");
+
+        // footerが未確定のうちは集計できない(記録中のファイルと同じ状態)。
+        assert!(read_summary(&path).is_none());
+
+        recorder
+            .record(1_000, &reading(60, vec![1000], Some(80)))
+            .unwrap();
+        recorder.record(2_000, &reading(80, vec![], None)).unwrap();
+        recorder.record(3_000, &reading(70, vec![], None)).unwrap();
+        recorder.close().unwrap();
+
+        let summary = read_summary(&path).expect("summary after close");
+        assert_eq!(summary.started_at_ms, 1_000);
+        assert_eq!(summary.ended_at_ms, 3_000);
+        assert_eq!(summary.min_bpm, 60);
+        assert_eq!(summary.max_bpm, 80);
+        assert_eq!(summary.mean_bpm, 70.0);
 
         let _ = fs::remove_file(&path);
     }
