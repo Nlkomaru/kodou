@@ -1,0 +1,62 @@
+---
+title: 心拍数（HR）
+description: 心拍数（Heart Rate / BPM）の定義・計算方法・正常値
+---
+
+# 💓 心拍数（HR: Heart Rate）
+
+## 説明
+
+**心拍数（HR: Heart Rate）** は、1分間あたりの心臓の拍動回数です。単位は **BPM（Beats Per Minute）** で表されます。
+
+心臓の洞房結節（ペースメーカー細胞）が電気信号を発生させ、心房→心室の順に収縮することで1回の心拍が生じます。この拍動の頻度が心拍数です。
+
+心拍数は自律神経系（交感神経・副交感神経）によって常に調節されており、身体活動・精神状態・健康状態を反映する基本的なバイタルサインです。
+
+- **交感神経が優位**: 心拍数が上昇（運動時・ストレス時・興奮時）
+- **副交感神経が優位**: 心拍数が低下（安静時・睡眠時・リラックス時）
+
+## 計算方法
+
+BLE（Bluetooth Low Energy）の Heart Rate Service では、心拍数は Heart Rate Measurement characteristic（UUID: `00002a37-0000-1000-8000-00805f9b34fb`）から直接 BPM 値として取得できます。
+
+通知データの構造：
+
+| バイト | 内容 |
+|--------|------|
+| 0 | Flags（bit 0: HRが16bitか8bitか, bit 1: sensor contact, bit 2: energy expended, bit 3: RR-Intervalあり） |
+| 1 | HR値（8bitの場合）または HR値 下位バイト（16bitの場合） |
+| 2 | HR値 上位バイト（16bitの場合のみ） |
+
+```
+// Flags の bit 0 で判定
+if (flags & 0x01) {
+    // 16bit HR: 2バイトをリトルエンディアンで読み取る
+    hr = data[1] | (data[2] << 8);
+} else {
+    // 8bit HR
+    hr = data[1];
+}
+```
+
+アプリ側で特別な計算は不要で、デバイスがすでに BPM 値を計算して送信します。
+
+## 正常値
+
+安静時の成人における一般的な心拍数の範囲 [^1]：
+
+| 状態 | BPM |
+|------|-----|
+| 安静時（成人） | 60 〜 100 |
+| 安静時（アスリート） | 40 〜 60 |
+| 睡眠時 | 40 〜 60 |
+| 軽い運動 | 100 〜 130 |
+| 激しい運動 | 140 〜 180+ |
+
+最大心拍数の目安：`220 - 年齢`（一般的な推定式）
+
+**注意**: 60 BPM 未満を徐脈（bradycardia）、100 BPM 超を頻脈（tachycardia）と呼びますが、アスリートの徐脈は生理的なもので問題ありません。持続的な異常値がある場合は医療機関への相談をお勧めします。
+
+[^1]: Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology. "Heart rate variability: standards of measurement, physiological interpretation and clinical use." *Circulation*, 1996; 93(5): 1043–1065. [DOI: 10.1161/01.CIR.93.5.1043](https://doi.org/10.1161/01.CIR.93.5.1043)
+
+[^2]: Shaffer, F., & Ginsberg, J. P. "An Overview of Heart Rate Variability Metrics and Norms." *Frontiers in Public Health*, 2017; 5: 258. [DOI: 10.3389/fpubh.2017.00258](https://doi.org/10.3389/fpubh.2017.00258)

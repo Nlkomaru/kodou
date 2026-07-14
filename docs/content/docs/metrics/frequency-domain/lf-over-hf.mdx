@@ -1,0 +1,69 @@
+---
+title: LF/HF 比
+description: 心拍変動（HRV）の周波数領域指標 — LF/HF比 の定義・計算方法・正常値・自律神経との関係
+---
+
+# 📈 LF/HF 比
+
+## 説明
+
+**LF/HF 比**は、LF と HF のパワー比です。**交感神経と副交感神経のバランス**（sympathovagal balance）を表すと広く使われてきました。
+
+```
+LF/HF = LF power / HF power
+```
+
+- **高い LF/HF**: 交感神経優位（ストレス・緊張状態）
+- **低い LF/HF**: 副交感神経優位（リラックス状態）
+
+**議論点**: LF/HF 比の解釈には学術的な議論があります。LF が純粋な交感神経指標ではないこと、また個人差や測定条件の影響が大きいことから、LF/HF 比単独での判断は避け、複数の指標と合わせて評価することが推奨されています [1][2]。
+
+## 計算方法
+
+```
+LF/HF = LF (ms²) / HF (ms²)
+```
+
+正規化単位（n.u.）を用いる場合：
+
+```
+LF n.u. = LF / (Total Power - VLF) × 100
+HF n.u. = HF / (Total Power - VLF) × 100
+LF/HF = LF n.u. / HF n.u.
+```
+
+## 正常値
+
+| 状態 | LF/HF |
+|------|-------|
+| 安静時（成人） | 0.5 〜 2.0 |
+| ストレス時 | 2.0 〜 5.0+ |
+| 深いリラックス時 | 0.5 未満 |
+
+## 自律神経系との関係
+
+心拍は、**交感神経**と**副交感神経**の二重支配を受ける自律神経系によって調節されています。各指標と自律神経の対応を以下にまとめます：
+
+| 指標 | 交感神経 | 副交感神経 | 信頼性 |
+|------|---------|-----------|--------|
+| HR（心拍数） | 上昇させる | 低下させる | ★★★★★ |
+| **RMSSD** | ほぼ無関係 | **強く反映** | ★★★★★ |
+| **pNN50** | ほぼ無関係 | **強く反映** | ★★★★★ |
+| **HF** | ほぼ無関係 | **強く反映** | ★★★★☆ |
+| SDNN | 両方を含む | 両方を含む | ★★★☆☆ |
+| LF | 両方（主に交感神経） | 一部影響 | ★★☆☆☆ |
+| LF/HF | 上昇 | 低下 | ★★☆☆☆ |
+
+### 実用的な解釈（VRChat アバター制御）
+
+- **リラックス検出**: RMSSD / pNN50 の上昇、HF の上昇 → アバターの表情を穏やかに
+- **緊張・興奮検出**: HR の上昇＋RMSSD の低下 → アバターに動悸エフェクト
+- **呼吸連動**: HF 帯域の変動を呼吸周期として抽出 → アバターの呼吸アニメーションと同期
+
+> Kodou では現在、周波数領域解析は未実装です。今後のバージョンで対応を検討しています。
+
+## 参考文献
+
+1. Billman, G. E. "The LF/HF ratio does not accurately measure cardiac sympatho-vagal balance." *Frontiers in Physiology*, 2013; 4: 26. DOI: [10.3389/fphys.2013.00026](https://doi.org/10.3389/fphys.2013.00026)
+
+2. Laborde, S., Mosley, E., & Thayer, J. F. "Heart Rate Variability and Cardiac Vagal Tone in Psychophysiological Research – Recommendations for Experiment Planning, Data Analysis, and Data Reporting." *Frontiers in Psychology*, 2017; 8: 213. DOI: [10.3389/fpsyg.2017.00213](https://doi.org/10.3389/fpsyg.2017.00213)

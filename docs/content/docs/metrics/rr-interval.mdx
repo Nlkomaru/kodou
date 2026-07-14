@@ -1,0 +1,61 @@
+---
+title: RR間隔
+description: RR間隔（RR Interval）の定義・計算方法・正常値
+---
+
+# ⏱️ RR間隔（RR Interval）
+
+## 説明
+
+**RR間隔（RR Interval）** は、心電図（ECG）における連続する **R 波**（心室の収縮に対応するピーク）の間隔です。心拍と心拍の間の時間をミリ秒（ms）単位で表します。
+
+心電図の波形は P波→QRS波→T波 の順に現れ、R波は QRS波の中で最も鋭いピークです。連続する2つのR波の時間差が RR間隔です。
+
+RR間隔は心拍変動（HRV）の**基本単位**です。健康な心臓では、安静時でも RR間隔は一定ではなく、呼吸に伴って周期的に変動します [^1]：
+
+- **吸気時**: RR間隔が短くなる（心拍が速くなる）
+- **呼気時**: RR間隔が長くなる（心拍が遅くなる）
+
+この現象を**呼吸性洞性不整脈（RSA: Respiratory Sinus Arrhythmia）**と呼び、副交感神経機能が正常であることの指標です。
+
+心拍数（BPM）と RR間隔（ms）の関係は反比例です：
+
+```
+BPM = 60000 / RR(ms)
+RR(ms) = 60000 / BPM
+```
+
+## 計算方法
+
+BLE の Heart Rate Measurement characteristic では、RR間隔は「前回の心拍からの経過時間」として、BPM値の後ろに付加されて送信されます。
+
+生の値は **1/1024 秒** 単位のため、ミリ秒に変換します：
+
+```
+RR (ms) = (raw value / 1024) × 1000
+        = raw value × 1000 / 1024
+```
+
+または簡易的に：
+
+```
+RR (ms) ≈ raw value × 0.9766
+```
+
+Flags バイトの bit 3 が RR-Interval の有無を示します。複数の RR間隔が含まれる場合もあります（直前の心拍だけでなく、さらに前の心拍との間隔も含まれる）。
+
+## 正常値
+
+安静時の成人における一般的な RR間隔の範囲 [^2]：
+
+| 状態 | RR間隔 (ms) | 対応 BPM |
+|------|------------|----------|
+| 安静時（成人） | 600 〜 1000 | 60 〜 100 |
+| 安静時（アスリート） | 1000 〜 1500 | 40 〜 60 |
+| 運動時 | 300 〜 450 | 130 〜 200 |
+
+**注意**: RR間隔が極端に短い（< 400ms、BPM > 150）状態が続く場合や、極端に長い（> 1500ms、BPM < 40）状態が続く場合は注意が必要です。
+
+[^1]: Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology. "Heart rate variability: standards of measurement, physiological interpretation and clinical use." *Circulation*, 1996; 93(5): 1043–1065. [DOI: 10.1161/01.CIR.93.5.1043](https://doi.org/10.1161/01.CIR.93.5.1043)
+
+[^2]: Shaffer, F., & Ginsberg, J. P. "An Overview of Heart Rate Variability Metrics and Norms." *Frontiers in Public Health*, 2017; 5: 258. [DOI: 10.3389/fpubh.2017.00258](https://doi.org/10.3389/fpubh.2017.00258)
