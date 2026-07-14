@@ -1,0 +1,128 @@
+name: Preview
+
+# PR ごとに docs (Fumadocs) と Storybook をビルドし、
+# R2 (S3 互換) のコミット単位のパスへ置いて、プレビュー用のリンクを PR にコメントする。
+on:
+  pull_request:
+    types: [opened, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # R2 は S3 互換 API なので aws-cli をそのまま使う。エンドポイントとバケットは secret から取る。
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  # GitHub Actions のランナーで EC2 のメタデータ取得を試みて待たされるのを防ぐ。
+  AWS_EC2_METADATA_DISABLED: true
+  S3_URL: ${{ secrets.S3_URL }}
+  BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+  # アップロード先バケット(nikomaru-ci)が公開されているドメイン。
+  PREVIEW_BASE_URL: https://ci.nikomaru.dev/kodou
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # プレビューの置き場所はコミット単位。PR ではマージコミットではなく、
+      # PR のブランチ先頭のコミットを使う（PR のコミットハッシュと一致させるため）。
+      - name: Set short commit SHA
+        id: vars
+        run: |
+          sha="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "commit_sha=${sha:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build docs
+        # basePath を付けないと、サブパス配信で CSS やリンクの参照先がずれる。
+        env:
+          BASE_PATH: /kodou/${{ steps.vars.outputs.commit_sha }}/docs
+        run: pnpm --dir docs build
+
+      - name: Build Storybook
+        env:
+          STORYBOOK_BASE_PATH: /kodou/${{ steps.vars.outputs.commit_sha }}/storybook/
+        run: pnpm --dir app build-storybook
+
+      - name: Upload to R2
+        env:
+          COMMIT_SHORT_SHA: ${{ steps.vars.outputs.commit_sha }}
+        run: |
+          aws configure set default.s3.max_concurrent_requests 50
+
+          S3_BASE="s3://${BUCKET_NAME}/kodou/${COMMIT_SHORT_SHA}"
+          S3_OPTS="--endpoint-url ${S3_URL} --only-show-errors --recursive"
+
+          # docs と Storybook は依存しないので並列で送る。
+          aws s3 cp ./docs/out "$S3_BASE/docs" $S3_OPTS &
+          aws s3 cp ./app/storybook-static "$S3_BASE/storybook" $S3_OPTS &
+          wait
+
+          # 公開ドメインはディレクトリURLから index.html を自動で解決しない。
+          # docs のリンクは末尾スラッシュ(/docs/config/)なので、各 index.html を
+          # 「末尾スラッシュのキー」としても置き、リンク先が404にならないようにする。
+          find ./docs/out -name index.html | while read -r file; do
+            relative="${file#./docs/out/}"
+            aws s3api put-object \
+              --bucket "${BUCKET_NAME}" \
+              --key "kodou/${COMMIT_SHORT_SHA}/docs/${relative%index.html}" \
+              --body "$file" \
+              --content-type "text/html" \
+              --endpoint-url "${S3_URL}" > /dev/null
+          done
+
+          # Storybook はトップページだけ同じ扱いにする(以降の遷移はクエリ文字列で完結する)。
+          aws s3api put-object \
+            --bucket "${BUCKET_NAME}" \
+            --key "kodou/${COMMIT_SHORT_SHA}/storybook/" \
+            --body ./app/storybook-static/index.html \
+            --content-type "text/html" \
+            --endpoint-url "${S3_URL}" > /dev/null
+
+          echo "R2 upload completed"
+
+      - name: Comment preview links
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHORT_SHA: ${{ steps.vars.outputs.commit_sha }}
+        run: |
+          PREVIEW_URL="${PREVIEW_BASE_URL}/${COMMIT_SHORT_SHA}"
+
+          cat << EOF > comment.md
+          ## 🚀 Preview of ${{ github.event.repository.name }}
+
+          コミット \`${COMMIT_SHORT_SHA}\` のプレビューです。
+
+          | Resource | Link |
+          |----------|------|
+          | 📖 Documentation | [Preview](${PREVIEW_URL}/docs/) |
+          | 📕 Storybook | [Preview](${PREVIEW_URL}/storybook/) |
+          EOF
+
+          # push のたびにコメントが増えないよう、同じコメントを上書きしていく。
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --body-file comment.md --edit-last --create-if-none
