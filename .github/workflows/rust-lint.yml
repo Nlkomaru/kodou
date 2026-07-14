@@ -3,15 +3,9 @@ name: Rust Lint
 # PRでRustコードの静的解析を行い、mainブランチへのマージ前に問題を検出する。
 on:
   pull_request:
-    paths:
-      - "app/src-tauri/**"
-      - ".github/workflows/rust-lint.yml"
   push:
     branches:
       - main
-    paths:
-      - "app/src-tauri/**"
-      - ".github/workflows/rust-lint.yml"
 
 # 同じPRで複数回pushされた場合は古い実行をキャンセルしてリソースを節約する。
 concurrency:
