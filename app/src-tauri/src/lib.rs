@@ -1,3 +1,4 @@
+mod config;
 mod heart_rate;
 mod osc;
 mod recorder;
@@ -69,7 +70,12 @@ async fn start_heart_rate_monitor(
     // 記録の初期化に失敗しても、モニタリング自体は続行できるようNoneで進める。
     // exit時に共有状態から同期closeできるよう、生成はspawnの外で行いstateにも持たせる。
     let recorder: Option<SharedRecorder> = match HeartRateRecorder::new(&app) {
-        Ok(recorder) => Some(Arc::new(Mutex::new(recorder))),
+        Ok(recorder) => {
+            // 記録開始をフロントエンドへ通知する（ファイルパスを含む）。
+            let path = recorder.path.display().to_string();
+            let _ = app.emit("recording-started", path);
+            Some(Arc::new(Mutex::new(recorder)))
+        }
         Err(error) => {
             let _ = app.emit(
                 "heart-rate-status",
@@ -161,6 +167,8 @@ async fn start_heart_rate_monitor(
                     );
                 }
             }
+            // 記録停止をフロントエンドへ通知する。
+            let _ = app.emit("recording-stopped", ());
         }
     });
 
@@ -233,9 +241,15 @@ pub fn run() {
             start_heart_rate_monitor,
             stop_heart_rate_monitor,
             osc::configure_osc,
-            osc::send_osc
+            osc::send_osc,
+            config::get_config
         ])
         .setup(|app| {
+            // config.conf が未作成ならテンプレートを生成しておく。
+            // 送信先の反映はフロントエンドがget_config_osc_targetsで読み出し、
+            // GUIの送信先と統合してconfigure_oscを呼ぶ経路に一本化している。
+            config::ensure_config_template(app.handle());
+
             // システムトレイに常駐させ、ウィンドウを閉じてもバックグラウンドで監視・記録・OSCを続けられるようにする。
             let show_item = MenuItem::with_id(app, "show", "表示", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "終了", true, None::<&str>)?;

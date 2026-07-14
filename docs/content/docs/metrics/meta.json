@@ -1,11 +1,12 @@
 {
-    "title": "Metrics",
-    "icon": "Code",
+    "title": "指標",
+    "icon": "HeartPulse",
     "root": true,
     "pages": [
         "hr",
         "rr-interval",
         "time-domain",
-        "frequency-domain"
+        "frequency-domain",
+        "stress-state"
     ]
 }

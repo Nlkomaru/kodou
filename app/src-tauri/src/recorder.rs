@@ -1,7 +1,9 @@
 use std::fs::{self, File};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use chrono::Local;
 
 use arrow_array::builder::{
     BooleanBuilder, Int64Builder, ListBuilder, StringBuilder, UInt16Builder, UInt32Builder,
@@ -33,23 +35,28 @@ pub struct HeartRateRecorder {
     sensor_contact_detected: BooleanBuilder,
     battery_percent: UInt8Builder,
     buffered_rows: usize,
-    // 保存先パス。今は自動記録のみで参照しないが、将来のエクスポート/フォルダ表示のために保持する。
-    #[allow(dead_code)]
+    // 保存先パス。記録開始時にフロントエンドへ通知して、履歴画面に表示する。
     pub path: PathBuf,
 }
 
 impl HeartRateRecorder {
-    // アプリのデータディレクトリ配下 recordings/ に、セッション開始時刻を名前にしたParquetを1つ作る。
+    // アプリのデータディレクトリ配下 recordings/<年月>/<年月日>_<連番>.parquet を1つ作る。
+    // デバイスへ接続するたびに新しいファイルを作り、同じ日の記録は連番で並べる。
     pub fn new(app: &AppHandle) -> Result<Self, String> {
-        let dir = app
+        let base = app
             .path()
             .app_data_dir()
             .map_err(|error| format!("データ保存先を取得できませんでした: {error}"))?
             .join("recordings");
-        fs::create_dir_all(&dir)
+
+        // ファイル名の日付は、利用者が探しやすいようUTCではなくローカル時刻で決める。
+        let now = Local::now();
+        let month_dir = base.join(now.format("%Y-%m").to_string());
+        fs::create_dir_all(&month_dir)
             .map_err(|error| format!("保存先フォルダを作成できませんでした: {error}"))?;
 
-        let path = dir.join(format!("heart-rate-{}.parquet", now_ms()));
+        let date = now.format("%Y-%m-%d").to_string();
+        let path = month_dir.join(next_recording_name(&file_names_in(&month_dir), &date));
         Self::with_path(path)
     }
 
@@ -165,7 +172,34 @@ impl HeartRateRecorder {
     }
 }
 
-// UTCのエポックミリ秒。ファイル名と各行のタイムスタンプに使う。
+// 月フォルダ内のファイル名一覧。読めない場合は空として扱い、連番を1から振る。
+fn file_names_in(dir: &Path) -> Vec<String> {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    entries
+        .flatten()
+        .filter_map(|entry| entry.file_name().into_string().ok())
+        .collect()
+}
+
+// 同じ日付の既存ファイルを見て、次の連番を付けたファイル名を返す。
+// 例: "2026-06-01_1.parquet" があれば "2026-06-01_2.parquet"。
+// 日付や書式が一致しないファイルは無視する。
+fn next_recording_name(existing_names: &[String], date: &str) -> String {
+    let prefix = format!("{date}_");
+    let latest = existing_names
+        .iter()
+        .filter_map(|name| {
+            let stem = name.strip_suffix(".parquet")?;
+            stem.strip_prefix(&prefix)?.parse::<u32>().ok()
+        })
+        .max()
+        .unwrap_or(0);
+    format!("{date}_{}.parquet", latest + 1)
+}
+
+// UTCのエポックミリ秒。各行のタイムスタンプに使う。
 pub fn now_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -188,6 +222,31 @@ mod tests {
             sensor_contact_detected: Some(true),
             battery_percent: battery,
         }
+    }
+
+    // 同じ日の記録は連番で増え、他の日付や無関係なファイルには影響されないことを確認する。
+    #[test]
+    fn numbers_recordings_per_day() {
+        assert_eq!(
+            next_recording_name(&[], "2026-06-01"),
+            "2026-06-01_1.parquet"
+        );
+
+        let existing = [
+            "2026-06-01_1.parquet".to_string(),
+            "2026-06-01_2.parquet".to_string(),
+            // 別の日付・無関係な名前は連番の判定に使わない。
+            "2026-06-02_9.parquet".to_string(),
+            "notes.txt".to_string(),
+        ];
+        assert_eq!(
+            next_recording_name(&existing, "2026-06-01"),
+            "2026-06-01_3.parquet"
+        );
+        assert_eq!(
+            next_recording_name(&existing, "2026-06-03"),
+            "2026-06-03_1.parquet"
+        );
     }
 
     // 記録→close→読み戻しの往復で、行数と代表値・list列・null許容列が保たれることを確認する。

@@ -3,8 +3,6 @@ title: LF（Low Frequency）
 description: 心拍変動（HRV）の周波数領域指標 — LF（Low Frequency）の定義・計算方法・正常値
 ---
 
-# 📈 LF（Low Frequency）
-
 ## 説明
 
 **LF** は 0.04〜0.15 Hz の低周波成分のパワーです。主に血圧調節に関連する Mayer 波（約0.1 Hz）を反映します [^1]。
@@ -29,7 +27,14 @@ LF = ∫₀.₀₄^0.15 PSD(f) df
 | 安静時（成人） | 200 〜 1000 |
 | ストレス時 | 上昇傾向 |
 
-> **注意**: LF の絶対値は個人差が非常に大きいため、正規化単位（n.u.）での評価が推奨されます。
+:::warn
+LF の絶対値は個人差が非常に大きいため、正規化単位（n.u.）での評価が推奨されます。
+また、LF を「交感神経の指標」として単独で読むことは避けてください [^2]。
+:::
+
+## Kodou での対応
+
+未実装です。周波数領域解析には RR間隔のリサンプリングとスペクトル推定が必要で、安定した値を得るには数分の連続計測が要ります。
 
 [^1]: Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology. "Heart rate variability: standards of measurement, physiological interpretation and clinical use." *Circulation*, 1996; 93(5): 1043–1065. [DOI: 10.1161/01.CIR.93.5.1043](https://doi.org/10.1161/01.CIR.93.5.1043)
 

@@ -1,0 +1,112 @@
+---
+title: 設定ファイル
+description: config.conf で送信先・送信パラメータ・数値設定を指定する
+---
+
+Kodou の設定は、設定ファイル `config.conf` にまとまっています。
+アプリ側の UI で切り替えられるのは OSC 送信のオン・オフだけで、送信先・送信するパラメータ・数値設定はすべてこのファイルで指定します。
+
+書式は [HOCON](https://github.com/lightbend/config/blob/main/HOCON.md) です。
+初回起動時にテンプレートが自動生成されるため、通常は生成されたファイルを編集するだけで済みます。
+
+## 保存場所
+
+`config.conf` はアプリのデータディレクトリ直下に置かれます。
+
+| OS | パス |
+| --- | --- |
+| Windows | `%APPDATA%\dev.nikomaru.kodou\config.conf` |
+| macOS | `~/Library/Application Support/dev.nikomaru.kodou/config.conf` |
+| Linux | `~/.local/share/dev.nikomaru.kodou/config.conf` |
+
+編集した内容は、アプリの起動時に一度だけ読み込まれます。編集したらアプリを再起動してください。
+
+## osc セクション
+
+送信先と、OSC 値を計算するための数値設定です。
+書かなかった項目は既定値が使われます。
+
+```text
+osc {
+  // OSC送信先。複数書くと、すべての送信先へ同じ値を送ります。
+  targets = [
+    "127.0.0.1:9000"
+  ]
+
+  bpmMin = 0
+  bpmMax = 240
+  hrFloatMode = "signed"
+  averageWindowMs = 10000
+  beatPulseMs = 120
+  rrTwitchThresholdMs = 50
+}
+```
+
+| 項目 | 既定値 | 説明 |
+| --- | --- | --- |
+| `targets` | `["127.0.0.1:9000"]` | 送信先の `"ip:port"` 配列。複数書くと、すべての送信先へ同じ値を送ります。VRChat は通常 `127.0.0.1:9000` で待ち受けます |
+| `bpmMin` / `bpmMax` | `0` / `240` | `HRNormalised` と `HRFloat` を計算するときの正規化範囲 |
+| `hrFloatMode` | `"signed"` | `HRFloat` の範囲。`"signed"` は `-1.0`〜`1.0`、`"unsigned"` は `0.0`〜`1.0` |
+| `averageWindowMs` | `10000` | `HRAverage` を計算する対象期間（ms） |
+| `beatPulseMs` | `120` | `BeatPulse` を `true` にしてから `false` へ戻すまでの時間（ms） |
+| `rrTwitchThresholdMs` | `50` | 連続する [RR間隔](/docs/metrics/rr-interval) の差がこの値を超えたときに `RRTwitchUp` / `RRTwitchDown` を発火させる |
+
+## compatibility セクション
+
+パラメータごとに、送信する OSC アドレスを配列で指定します。
+
+```text
+compatibility {
+  hr           = ["/avatar/parameters/VRCOSC/Heartrate/Value"]
+  connected    = ["/avatar/parameters/VRCOSC/Heartrate/Connected"]
+  hrNormalised = ["/avatar/parameters/VRCOSC/Heartrate/Normalised"]
+  beatPulse    = []
+}
+```
+
+- **アドレスを複数書くと、同じ値をすべてのアドレスへ送ります。** 複数のギミックに同時対応させたいときに使います。
+- **空配列 `[]` にすると、そのパラメータは送信しません。**
+- **このセクションを書いた場合、書かれていないパラメータは送信されません。** テンプレートは全パラメータを列挙しているので、そのまま編集してください。
+
+1つのパラメータを複数のアドレスへ送る例です。
+
+```text
+compatibility {
+  hr = [
+    "/avatar/parameters/VRCOSC/Heartrate/Value",
+    "/avatar/parameters/Kodou/HR"
+  ]
+}
+```
+
+### 既定のアドレス
+
+既定値は VRCOSC 互換のアドレスです。
+VRCOSC に対応するパラメータが無いものは、Kodou 標準アドレス `/avatar/parameters/Kodou/...` を使います。
+
+| パラメータ | 既定のアドレス |
+| --- | --- |
+| `connected` | `/avatar/parameters/VRCOSC/Heartrate/Connected` |
+| `hr` | `/avatar/parameters/VRCOSC/Heartrate/Value` |
+| `hrNormalised` | `/avatar/parameters/VRCOSC/Heartrate/Normalised` |
+| `hrAverage` | `/avatar/parameters/VRCOSC/Heartrate/Average` |
+| `beatToggle` | `/avatar/parameters/VRCOSC/Heartrate/Beat` |
+| `reconnecting` | `/avatar/parameters/Kodou/Reconnecting` |
+| `hrFloat` | `/avatar/parameters/Kodou/HRFloat` |
+| `battery` | `/avatar/parameters/Kodou/Battery` |
+| `batteryFloat` | `/avatar/parameters/Kodou/BatteryFloat` |
+| `rrInterval` | `/avatar/parameters/Kodou/RRInterval` |
+| `beatPulse` | （既定では送信しない） |
+| `rrTwitchUp` / `rrTwitchDown` / `activity` | （既定では送信しない） |
+
+各パラメータの型と意味は [送信される情報](/docs/osc) を参照してください。
+
+:::warn
+`beatToggle` と `beatPulse` は、VRCOSC ではどちらも `Beat` に対応します。
+同じアドレスへ両方を送ると値が競合するため、既定では `beatToggle` のみを送信します。
+:::
+
+## 設定ファイルが無い・壊れているとき
+
+`config.conf` が存在しない場合、または書式が壊れて読み込めない場合は、上記の既定値で動作します。
+`compatibility` セクションだけを書かなかった場合も、既定のアドレス表が使われます。

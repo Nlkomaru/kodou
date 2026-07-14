@@ -19,6 +19,11 @@ export const isScanningAtom = atom(false);
 export const isStartingAtom = atom(false);
 export const errorAtom = atom("");
 
+// 記録中のParquetファイルパス。nullなら未記録。
+export const recordingPathAtom = atom<string | null>(null);
+// 記録中かどうかの派生atom。
+export const isRecordingAtom = atom((get) => get(recordingPathAtom) !== null);
+
 // 派生atom。UIコンポーネント側で同じ検索や判定を繰り返さないために置く。
 export const selectedDeviceAtom = atom((get) =>
   get(devicesAtom).find((device) => device.id === get(selectedDeviceIdAtom)),

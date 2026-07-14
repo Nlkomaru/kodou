@@ -3,8 +3,6 @@ title: 心拍数（HR）
 description: 心拍数（Heart Rate / BPM）の定義・計算方法・正常値
 ---
 
-# 💓 心拍数（HR: Heart Rate）
-
 ## 説明
 
 **心拍数（HR: Heart Rate）** は、1分間あたりの心臓の拍動回数です。単位は **BPM（Beats Per Minute）** で表されます。
@@ -55,8 +53,14 @@ if (flags & 0x01) {
 
 最大心拍数の目安：`220 - 年齢`（一般的な推定式）
 
-**注意**: 60 BPM 未満を徐脈（bradycardia）、100 BPM 超を頻脈（tachycardia）と呼びますが、アスリートの徐脈は生理的なもので問題ありません。持続的な異常値がある場合は医療機関への相談をお勧めします。
+:::info
+60 BPM 未満を徐脈（bradycardia）、100 BPM 超を頻脈（tachycardia）と呼びますが、アスリートの徐脈は生理的なもので問題ありません。
+持続的な異常値がある場合は医療機関への相談をお勧めします。
+:::
+
+## 関連ページ
+
+- [RR間隔](/docs/metrics/rr-interval) — 心拍数の元になる拍と拍の間隔
+- [自律神経状態の判定](/docs/metrics/stress-state) — HR と HRV から落ち着き・ストレス・興奮を推定する
 
 [^1]: Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology. "Heart rate variability: standards of measurement, physiological interpretation and clinical use." *Circulation*, 1996; 93(5): 1043–1065. [DOI: 10.1161/01.CIR.93.5.1043](https://doi.org/10.1161/01.CIR.93.5.1043)
-
-[^2]: Shaffer, F., & Ginsberg, J. P. "An Overview of Heart Rate Variability Metrics and Norms." *Frontiers in Public Health*, 2017; 5: 258. [DOI: 10.3389/fpubh.2017.00258](https://doi.org/10.3389/fpubh.2017.00258)

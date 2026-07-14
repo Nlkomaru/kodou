@@ -2,6 +2,8 @@
     "pages": [
         "---Introduction---",
         "index",
+        "---Config---",
+        "...config",
         "---Metrics---",
         "...metrics",
         "---OSC---",

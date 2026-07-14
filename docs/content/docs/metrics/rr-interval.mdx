@@ -3,8 +3,6 @@ title: RR間隔
 description: RR間隔（RR Interval）の定義・計算方法・正常値
 ---
 
-# ⏱️ RR間隔（RR Interval）
-
 ## 説明
 
 **RR間隔（RR Interval）** は、心電図（ECG）における連続する **R 波**（心室の収縮に対応するピーク）の間隔です。心拍と心拍の間の時間をミリ秒（ms）単位で表します。
@@ -54,7 +52,14 @@ Flags バイトの bit 3 が RR-Interval の有無を示します。複数の RR
 | 安静時（アスリート） | 1000 〜 1500 | 40 〜 60 |
 | 運動時 | 300 〜 450 | 130 〜 200 |
 
-**注意**: RR間隔が極端に短い（< 400ms、BPM > 150）状態が続く場合や、極端に長い（> 1500ms、BPM < 40）状態が続く場合は注意が必要です。
+:::info
+RR間隔が極端に短い（400ms 未満、BPM 150 超）状態や、極端に長い（1500ms 超、BPM 40 未満）状態が安静時に続く場合は注意が必要です。
+:::
+
+## 関連ページ
+
+- [SDNN](/docs/metrics/time-domain/sdnn) / [RMSSD](/docs/metrics/time-domain/rmssd) / [pNN50](/docs/metrics/time-domain/pnn50) — RR間隔から計算する時間領域の HRV 指標
+- [自律神経状態の判定](/docs/metrics/stress-state) — 各指標から落ち着き・ストレス・興奮を推定する
 
 [^1]: Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology. "Heart rate variability: standards of measurement, physiological interpretation and clinical use." *Circulation*, 1996; 93(5): 1043–1065. [DOI: 10.1161/01.CIR.93.5.1043](https://doi.org/10.1161/01.CIR.93.5.1043)
 
