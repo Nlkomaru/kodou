@@ -7,7 +7,7 @@ description: 心拍変動（HRV）の周波数領域指標 — LF/HF比 の定�
 
 ## 説明
 
-**LF/HF 比**は、LF と HF のパワー比です。**交感神経と副交感神経のバランス**（sympathovagal balance）を表すと広く使われてきました。
+**LF/HF 比**は、LF と HF のパワー比です。**交感神経と副交感神経のバランス**（sympathovagal balance）を表すと広く使われてきました [^1]。
 
 ```
 LF/HF = LF power / HF power
@@ -16,7 +16,7 @@ LF/HF = LF power / HF power
 - **高い LF/HF**: 交感神経優位（ストレス・緊張状態）
 - **低い LF/HF**: 副交感神経優位（リラックス状態）
 
-**議論点**: LF/HF 比の解釈には学術的な議論があります。LF が純粋な交感神経指標ではないこと、また個人差や測定条件の影響が大きいことから、LF/HF 比単独での判断は避け、複数の指標と合わせて評価することが推奨されています [1][2]。
+**議論点**: LF/HF 比の解釈には学術的な議論があります。LF が純粋な交感神経指標ではないこと、また個人差や測定条件の影響が大きいことから、LF/HF 比単独での判断は避け、複数の指標と合わせて評価することが推奨されています [^2][^3]。
 
 ## 計算方法
 
@@ -42,7 +42,7 @@ LF/HF = LF n.u. / HF n.u.
 
 ## 自律神経系との関係
 
-心拍は、**交感神経**と**副交感神経**の二重支配を受ける自律神経系によって調節されています。各指標と自律神経の対応を以下にまとめます：
+心拍は、**交感神経**と**副交感神経**の二重支配を受ける自律神経系によって調節されています。各指標と自律神経の対応を以下にまとめます [^1][^2]：
 
 | 指標 | 交感神経 | 副交感神経 | 信頼性 |
 |------|---------|-----------|--------|
@@ -62,8 +62,8 @@ LF/HF = LF n.u. / HF n.u.
 
 > Kodou では現在、周波数領域解析は未実装です。今後のバージョンで対応を検討しています。
 
-## 参考文献
+[^1]: Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology. "Heart rate variability: standards of measurement, physiological interpretation and clinical use." *Circulation*, 1996; 93(5): 1043–1065. [DOI: 10.1161/01.CIR.93.5.1043](https://doi.org/10.1161/01.CIR.93.5.1043)
 
-1. Billman, G. E. "The LF/HF ratio does not accurately measure cardiac sympatho-vagal balance." *Frontiers in Physiology*, 2013; 4: 26. DOI: [10.3389/fphys.2013.00026](https://doi.org/10.3389/fphys.2013.00026)
+[^2]: Billman, G. E. "The LF/HF ratio does not accurately measure cardiac sympatho-vagal balance." *Frontiers in Physiology*, 2013; 4: 26. [DOI: 10.3389/fphys.2013.00026](https://doi.org/10.3389/fphys.2013.00026)
 
-2. Laborde, S., Mosley, E., & Thayer, J. F. "Heart Rate Variability and Cardiac Vagal Tone in Psychophysiological Research – Recommendations for Experiment Planning, Data Analysis, and Data Reporting." *Frontiers in Psychology*, 2017; 8: 213. DOI: [10.3389/fpsyg.2017.00213](https://doi.org/10.3389/fpsyg.2017.00213)
+[^3]: Laborde, S., Mosley, E., & Thayer, J. F. "Heart Rate Variability and Cardiac Vagal Tone in Psychophysiological Research – Recommendations for Experiment Planning, Data Analysis, and Data Reporting." *Frontiers in Psychology*, 2017; 8: 213. [DOI: 10.3389/fpsyg.2017.00213](https://doi.org/10.3389/fpsyg.2017.00213)
