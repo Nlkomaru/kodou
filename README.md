@@ -42,13 +42,13 @@ macOS (Universal) / Windows / Linux 向けのバイナリを配布していま�
 pnpm install
 
 # アプリを開発モードで起動
-pnpm dev
+pnpm run dev
 
 # Storybook を起動
 pnpm --dir app storybook
 
 # ドキュメントを開発モードで起動
-pnpm docs
+pnpm run docs
 ```
 
 ### 必要環境

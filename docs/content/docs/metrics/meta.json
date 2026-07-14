@@ -1,0 +1,11 @@
+{
+    "title": "Metrics",
+    "icon": "Code",
+    "root": true,
+    "pages": [
+        "hr",
+        "rr-interval",
+        "time-domain",
+        "frequency-domain"
+    ]
+}

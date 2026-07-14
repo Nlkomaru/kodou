@@ -44,8 +44,10 @@ jobs:
         with:
           path: docs/out
 
+
   deploy:
     needs: build
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

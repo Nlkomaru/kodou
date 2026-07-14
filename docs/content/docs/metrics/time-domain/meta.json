@@ -1,0 +1,9 @@
+{
+    "title": "Time Domain",
+    "icon": "ChartNoAxesColumn",
+    "pages": [
+        "sdnn",
+        "rmssd",
+        "pnn50"
+    ]
+}

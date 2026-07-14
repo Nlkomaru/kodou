@@ -1,0 +1,36 @@
+---
+title: LF（Low Frequency）
+description: 心拍変動（HRV）の周波数領域指標 — LF（Low Frequency）の定義・計算方法・正常値
+---
+
+# 📈 LF（Low Frequency）
+
+## 説明
+
+**LF** は 0.04〜0.15 Hz の低周波成分のパワーです。主に血圧調節に関連する Mayer 波（約0.1 Hz）を反映します [^1]。
+
+- **反映するもの**: 従来は交感神経活動の指標とされてきましたが、実際には**副交感神経の影響も受ける**ことが知られています [^1][^2]。
+- **単位**: ms²（絶対値）または n.u.（正規化単位）
+
+## 計算方法
+
+1. RR間隔時系列を等間隔にリサンプリング（通常 4 Hz）
+2. FFT または自己回帰（AR）モデルでパワースペクトル密度（PSD）を算出
+3. 0.04〜0.15 Hz の PSD を積分して LF パワーを算出
+
+```
+LF = ∫₀.₀₄^0.15 PSD(f) df
+```
+
+## 正常値
+
+| 状態 | LF (ms²) |
+|------|---------|
+| 安静時（成人） | 200 〜 1000 |
+| ストレス時 | 上昇傾向 |
+
+> **注意**: LF の絶対値は個人差が非常に大きいため、正規化単位（n.u.）での評価が推奨されます。
+
+[^1]: Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology. "Heart rate variability: standards of measurement, physiological interpretation and clinical use." *Circulation*, 1996; 93(5): 1043–1065. [DOI: 10.1161/01.CIR.93.5.1043](https://doi.org/10.1161/01.CIR.93.5.1043)
+
+[^2]: Billman, G. E. "The LF/HF ratio does not accurately measure cardiac sympatho-vagal balance." *Frontiers in Physiology*, 2013; 4: 26. [DOI: 10.3389/fphys.2013.00026](https://doi.org/10.3389/fphys.2013.00026)

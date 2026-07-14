@@ -1,0 +1,9 @@
+{
+    "title": "Frequency Domain",
+    "icon": "ChartArea",
+    "pages": [
+        "lf",
+        "hf",
+        "lf-over-hf"
+    ]
+}

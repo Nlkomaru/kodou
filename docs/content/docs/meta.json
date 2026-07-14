@@ -2,6 +2,8 @@
     "pages": [
         "---Introduction---",
         "index",
+        "---Metrics---",
+        "...metrics",
         "---OSC---",
         "...osc",
         "---Implementation---",

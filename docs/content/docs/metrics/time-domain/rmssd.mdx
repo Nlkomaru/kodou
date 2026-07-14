@@ -1,0 +1,38 @@
+---
+title: RMSSD
+description: 心拍変動（HRV）の時間領域指標 — RMSSD（Root Mean Square of Successive Differences）の定義・計算方法・正常値
+---
+
+# 📊 RMSSD（Root Mean Square of Successive Differences）
+
+## 説明
+
+**RMSSD** は、隣接する RR間隔の差の二乗平均平方根です。短期的な変動成分を抽出するため、**副交感神経活動**を純度良く反映する指標として広く用いられています [^1][^2]。
+
+- **反映するもの**: 副交感神経活動（特に呼吸性洞性不整脈 RSA）
+- **特徴**: 測定時間の長さの影響を受けにくく、短時間計測でも信頼性が高い。pNN50 と高い相関を示す。
+- **VRChat での活用**: RMSSD の上昇は「リラックス状態」を示す → アバターの表情を穏やかにするなどの制御に利用可能。
+
+## 計算方法
+
+```
+RMSSD = sqrt( Σ(RRᵢ₊₁ - RRᵢ)² / (N - 1) )
+```
+
+- RRᵢ₊₁ - RRᵢ：隣接する RR間隔の差
+- 各差を二乗して合計し、N-1 で割り、平方根を取る
+
+## 正常値
+
+| 年齢層 | 正常範囲（5分安静時） |
+|--------|---------------------|
+| 成人（一般） | 20 〜 50 ms |
+| 成人（アスリート） | 50 〜 100 ms |
+
+## Kodou での対応
+
+Kodou では RMSSD が実装済みで、統計表示に使用されています。
+
+[^1]: Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology. "Heart rate variability: standards of measurement, physiological interpretation and clinical use." *Circulation*, 1996; 93(5): 1043–1065. [DOI: 10.1161/01.CIR.93.5.1043](https://doi.org/10.1161/01.CIR.93.5.1043)
+
+[^2]: Shaffer, F., & Ginsberg, J. P. "An Overview of Heart Rate Variability Metrics and Norms." *Frontiers in Public Health*, 2017; 5: 258. [DOI: 10.3389/fpubh.2017.00258](https://doi.org/10.3389/fpubh.2017.00258)
