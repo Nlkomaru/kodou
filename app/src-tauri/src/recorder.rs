@@ -196,7 +196,9 @@ mod tests {
         let path = temp_dir().join(format!("kodou-recorder-test-{}.parquet", now_ms()));
         let mut recorder = HeartRateRecorder::with_path(path.clone()).expect("create recorder");
 
-        recorder.record(1_000, &reading(60, vec![1000, 1010], Some(80))).unwrap();
+        recorder
+            .record(1_000, &reading(60, vec![1000, 1010], Some(80)))
+            .unwrap();
         recorder.record(2_000, &reading(61, vec![], None)).unwrap();
         recorder.close().unwrap();
 

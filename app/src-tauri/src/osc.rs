@@ -44,7 +44,8 @@ fn encode(message: OscMessageArg) -> Result<Vec<u8>, String> {
         addr: message.address,
         args: vec![arg_to_osc(message.arg)],
     });
-    encoder::encode(&packet).map_err(|error| format!("OSCパケットのエンコードに失敗しました: {error}"))
+    encoder::encode(&packet)
+        .map_err(|error| format!("OSCパケットのエンコードに失敗しました: {error}"))
 }
 
 // 送信先を設定する。Noneを渡すと送信を停止し、ソケットも閉じる。
