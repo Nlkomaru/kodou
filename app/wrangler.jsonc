@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kodou-sb",
+  "compatibility_date": "2026-07-14",
+  "assets": {
+    // `storybook build` が吐き出す静的ファイル一式。
+    "directory": "./storybook-static",
+    // Storybook は index.html 上でハッシュルーティング（?path=/...）を行うため、
+    // 実体の無いパスには index.html を返してマネージャ UI を動かす。
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    // Cloudflare 側で vrc.nikomaru.dev ゾーンを同一アカウントにホストしている前提。
+    // custom_domain: true にすると、初回デプロイ時に DNS レコードの作成まで合わせて行われる。
+    { "pattern": "kodou-sb.vrc.nikomaru.dev", "custom_domain": true }
+  ]
+}
