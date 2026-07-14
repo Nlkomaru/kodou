@@ -1,9 +1,5 @@
 import type { HeartRateReading, HeartRateStats, HeartRateStatusEvent, OscArg, OscMessage } from "./heart-rate-types";
 
-// Kodou標準のAvatar Parameter接頭辞。
-// VRCOSCに対応するパラメータが無いものの既定アドレスとして使う。
-export const KODOU_PREFIX = "/avatar/parameters/Kodou";
-
 // Kodouが送れるOSCパラメータの一覧。
 // 実際にどのアドレスへ送るかは config.conf の compatibility セクションが決める。
 export type OscParamKey =
