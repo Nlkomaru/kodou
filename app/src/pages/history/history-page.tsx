@@ -1,38 +1,39 @@
+import { useCallback, useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useAtomValue } from "jotai";
-import { ChartColumn, Circle, FileText } from "lucide-react";
-import { isRecordingAtom, recordingPathAtom } from "@/state/heart-rate";
+import { RecordingList } from "@/components/recording-list/recording-list";
+import { isTauriRuntime } from "@/lib/heart-rate";
+import type { RecordingFile } from "@/lib/heart-rate-types";
+import { recordingPathAtom } from "@/state/heart-rate";
 
 export function HistoryPage() {
-  const isRecording = useAtomValue(isRecordingAtom);
   const recordingPath = useAtomValue(recordingPathAtom);
+  const [recordings, setRecordings] = useState<RecordingFile[]>([]);
+  const [error, setError] = useState("");
 
-  if (isRecording && recordingPath) {
-    return (
-      <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-[14px] bg-muted/40 p-8 text-center">
-        <div className="flex items-center gap-2 text-sm font-medium text-secondary-foreground">
-          <Circle className="size-3 animate-pulse fill-red-500 text-red-500" aria-hidden="true" />
-          記録中
-        </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <FileText className="size-4" aria-hidden="true" />
-          <code className="break-all">{recordingPath}</code>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          心拍データはParquet形式で保存されています。接続を切るとファイルが確定されます。
-        </p>
-      </div>
-    );
-  }
+  // 記録の開始・停止でファイルが増えるため、recordingPathの変化も再取得のきっかけにする。
+  useEffect(() => {
+    if (!isTauriRuntime()) return;
+
+    invoke<RecordingFile[]>("list_recordings")
+      .then(setRecordings)
+      .catch((listError) => setError(String(listError)));
+  }, [recordingPath]);
+
+  // OSのファイルエクスプローラーで、該当ファイルを選択した状態でフォルダを開く。
+  const handleReveal = useCallback((path: string) => {
+    revealItemInDir(path).catch((revealError) => setError(String(revealError)));
+  }, []);
 
   return (
-    <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-[14px] bg-muted/40 p-8 text-center">
-      <ChartColumn className="size-8 text-muted-foreground" aria-hidden="true" />
-      <p className="text-sm font-medium text-secondary-foreground">
-        記録したセッションの表示は準備中です。
-      </p>
-      <p className="text-xs text-muted-foreground">
-        心拍データは接続中、Parquetファイルとしてアプリデータフォルダに保存されています。
-      </p>
+    <div className="flex flex-col gap-3">
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      <RecordingList
+        recordings={recordings}
+        activePath={recordingPath}
+        onReveal={handleReveal}
+      />
     </div>
   );
 }

@@ -62,7 +62,17 @@ recordings/
 
 - `recording-started` イベントで、書き込み中の Parquet ファイルのパスを送る。
 - `recording-stopped` イベントで、記録の終了を送る。
-- React 側は `recordingPathAtom` にパスを保持し、履歴ページで「記録中」の表示と保存先パスを出す。
+- React 側は `recordingPathAtom` にパスを保持し、履歴ページで「記録中」の行を示すために使う。
+
+### 履歴一覧
+
+履歴ページでは、保存済みの記録ファイルを新しい順に一覧表示します。
+
+- `list_recordings` command で、`recordings/` 配下の `<年月日>_<連番>.parquet` を走査して一覧を取得する。
+- 一覧には、ファイル名・最終更新時刻・ファイルサイズを日付ごとにまとめて表示する。
+- Parquet の中身は開かず、ファイル名とファイルシステムの情報だけで組み立てる。記録中のファイルは footer が未確定で読めないため、一覧が壊れないようにする狙いです。
+- 記録中のファイルは、`recordingPathAtom` のパスと一致する行に「記録中」バッジを出す。
+- 各行の「フォルダで開く」ボタンから、`@tauri-apps/plugin-opener` の `revealItemInDir` で OS のファイルエクスプローラーを開く（ファイルが選択された状態になります）。
 
 ## 6. 次にやること
 

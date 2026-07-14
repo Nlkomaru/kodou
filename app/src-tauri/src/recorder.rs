@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::Local;
+use serde::Serialize;
 
 use arrow_array::builder::{
     BooleanBuilder, Int64Builder, ListBuilder, StringBuilder, UInt16Builder, UInt32Builder,
@@ -43,15 +44,9 @@ impl HeartRateRecorder {
     // アプリのデータディレクトリ配下 recordings/<年月>/<年月日>_<連番>.parquet を1つ作る。
     // デバイスへ接続するたびに新しいファイルを作り、同じ日の記録は連番で並べる。
     pub fn new(app: &AppHandle) -> Result<Self, String> {
-        let base = app
-            .path()
-            .app_data_dir()
-            .map_err(|error| format!("データ保存先を取得できませんでした: {error}"))?
-            .join("recordings");
-
         // ファイル名の日付は、利用者が探しやすいようUTCではなくローカル時刻で決める。
         let now = Local::now();
-        let month_dir = base.join(now.format("%Y-%m").to_string());
+        let month_dir = recordings_dir(app)?.join(now.format("%Y-%m").to_string());
         fs::create_dir_all(&month_dir)
             .map_err(|error| format!("保存先フォルダを作成できませんでした: {error}"))?;
 
@@ -172,6 +167,97 @@ impl HeartRateRecorder {
     }
 }
 
+// 履歴画面に並べる記録ファイル1件分の情報。
+// 中身(Parquet)は開かず、ファイル名とファイルシステムの情報だけで組み立てる。
+// 記録中のファイルはfooterが未確定で読めないため、ここで中身に触れない方が一覧が壊れにくい。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordingFile {
+    // OSのファイルエクスプローラーで開くために使う絶対パス。
+    pub path: String,
+    pub name: String,
+    // ファイル名から取り出した記録日と、同じ日の中での連番。
+    pub date: String,
+    pub sequence: u32,
+    pub size_bytes: u64,
+    // 最終更新時刻(UTCのエポックミリ秒)。記録が終わったおおよその時刻として表示する。
+    pub modified_ms: i64,
+}
+
+// 記録ファイルの保存先ルート(<アプリデータ>/recordings)。
+pub fn recordings_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("データ保存先を取得できませんでした: {error}"))?
+        .join("recordings"))
+}
+
+// 保存済みの記録ファイルを新しい順に並べて返す。
+pub fn list_recordings(app: &AppHandle) -> Result<Vec<RecordingFile>, String> {
+    Ok(list_recordings_in(&recordings_dir(app)?))
+}
+
+// 保存先ルート配下を走査する本体。Tauriに依存しないので単体テストからも使える。
+// フォルダがまだ無い場合や読めないファイルがある場合は、その分を飛ばして空一覧・部分一覧を返す。
+fn list_recordings_in(root: &Path) -> Vec<RecordingFile> {
+    let Ok(month_dirs) = fs::read_dir(root) else {
+        // まだ一度も記録していなければフォルダ自体が無い。エラーではなく空一覧として扱う。
+        return Vec::new();
+    };
+
+    let mut recordings: Vec<RecordingFile> = month_dirs
+        .flatten()
+        // <recordings>/<年月>/<年月日_連番>.parquet の2階層だけを見る。
+        .filter(|month| month.path().is_dir())
+        .flat_map(|month| fs::read_dir(month.path()).into_iter().flatten().flatten())
+        .filter_map(|entry| recording_file(&entry.path()))
+        .collect();
+
+    // 日付と連番の降順(新しい記録が上)。名前で並べるので、記録中のファイルでも順序が揺れない。
+    recordings.sort_by(|left, right| {
+        right
+            .date
+            .cmp(&left.date)
+            .then(right.sequence.cmp(&left.sequence))
+    });
+    recordings
+}
+
+// パス1件をRecordingFileに変換する。記録ファイルの命名規則に合わないものはNoneで無視する。
+fn recording_file(path: &Path) -> Option<RecordingFile> {
+    let name = path.file_name()?.to_str()?.to_string();
+    let (date, sequence) = parse_recording_name(&name)?;
+
+    let metadata = fs::metadata(path).ok()?;
+    let modified_ms = metadata
+        .modified()
+        .ok()
+        .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
+        .map(|elapsed| elapsed.as_millis() as i64)
+        .unwrap_or(0);
+
+    Some(RecordingFile {
+        path: path.to_str()?.to_string(),
+        name,
+        date,
+        sequence,
+        size_bytes: metadata.len(),
+        modified_ms,
+    })
+}
+
+// "2026-06-01_2.parquet" → ("2026-06-01", 2)。書式が違うファイルはNone。
+fn parse_recording_name(name: &str) -> Option<(String, u32)> {
+    let stem = name.strip_suffix(".parquet")?;
+    let (date, sequence) = stem.rsplit_once('_')?;
+    // 日付として妥当かどうかまで見て、無関係なファイルを一覧に混ぜない。
+    if chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").is_err() {
+        return None;
+    }
+    Some((date.to_string(), sequence.parse::<u32>().ok()?))
+}
+
 // 月フォルダ内のファイル名一覧。読めない場合は空として扱い、連番を1から振る。
 fn file_names_in(dir: &Path) -> Vec<String> {
     let Ok(entries) = fs::read_dir(dir) else {
@@ -247,6 +333,54 @@ mod tests {
             next_recording_name(&existing, "2026-06-03"),
             "2026-06-03_1.parquet"
         );
+    }
+
+    // 記録ファイル名から日付と連番を取り出せること、無関係な名前は一覧に混ざらないことを確認する。
+    #[test]
+    fn parses_recording_names() {
+        assert_eq!(
+            parse_recording_name("2026-06-01_2.parquet"),
+            Some(("2026-06-01".to_string(), 2))
+        );
+        assert_eq!(parse_recording_name("notes.txt"), None);
+        assert_eq!(parse_recording_name("2026-06-01.parquet"), None);
+        // 日付として成立しない名前は無視する。
+        assert_eq!(parse_recording_name("session_1.parquet"), None);
+    }
+
+    // 月フォルダをまたいで記録を集め、新しい順に並び、無関係なファイルは混ざらないことを確認する。
+    #[test]
+    fn lists_recordings_newest_first() {
+        let root = temp_dir().join(format!("kodou-list-test-{}", now_ms()));
+        for (month, name) in [
+            ("2026-06", "2026-06-01_1.parquet"),
+            ("2026-06", "2026-06-02_1.parquet"),
+            ("2026-06", "2026-06-02_2.parquet"),
+            ("2026-07", "2026-07-01_1.parquet"),
+            // 記録ファイルではないものは一覧に出さない。
+            ("2026-07", "notes.txt"),
+        ] {
+            let dir = root.join(month);
+            fs::create_dir_all(&dir).unwrap();
+            File::create(dir.join(name)).unwrap();
+        }
+
+        let recordings = list_recordings_in(&root);
+        let names: Vec<&str> = recordings.iter().map(|file| file.name.as_str()).collect();
+        assert_eq!(
+            names,
+            [
+                "2026-07-01_1.parquet",
+                "2026-06-02_2.parquet",
+                "2026-06-02_1.parquet",
+                "2026-06-01_1.parquet",
+            ]
+        );
+
+        // 保存先フォルダが無い場合は、エラーではなく空一覧になる。
+        assert!(list_recordings_in(&root.join("missing")).is_empty());
+
+        let _ = fs::remove_dir_all(&root);
     }
 
     // 記録→close→読み戻しの往復で、行数と代表値・list列・null許容列が保たれることを確認する。

@@ -49,6 +49,16 @@ export type TimeDomain = {
   end: number;
 };
 
+// 保存済みの記録ファイル1件。RustのRecordingFileと対応させる。
+export type RecordingFile = {
+  path: string;
+  name: string;
+  date: string;
+  sequence: number;
+  sizeBytes: number;
+  modifiedMs: number;
+};
+
 export type HeartRateStats = {
   avgBpm: number | null;
   maxBpm: number | null;
