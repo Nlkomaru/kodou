@@ -3,12 +3,13 @@ import { listen } from "@tauri-apps/api/event";
 import { useSetAtom } from "jotai";
 import { isTauriRuntime } from "@/lib/heart-rate";
 import type { HeartRateReading, HeartRateStatusEvent } from "@/lib/heart-rate-types";
-import { applyReadingAtom, errorAtom, setTauriUnavailableAtom, statusAtom } from "@/state/heart-rate";
+import { applyReadingAtom, errorAtom, recordingPathAtom, setTauriUnavailableAtom, statusAtom } from "@/state/heart-rate";
 
 export function useHeartRateEvents() {
   const applyReading = useSetAtom(applyReadingAtom);
   const setError = useSetAtom(errorAtom);
   const setStatus = useSetAtom(statusAtom);
+  const setRecordingPath = useSetAtom(recordingPathAtom);
   const setTauriUnavailable = useSetAtom(setTauriUnavailableAtom);
 
   useEffect(() => {
@@ -29,12 +30,20 @@ export function useHeartRateEvents() {
       const unlistenStatus = await listen<HeartRateStatusEvent>("heart-rate-status", (event) => {
         setStatus(event.payload);
       });
+      const unlistenRecordingStarted = await listen<string>("recording-started", (event) => {
+        setRecordingPath(event.payload);
+      });
+      const unlistenRecordingStopped = await listen("recording-stopped", () => {
+        setRecordingPath(null);
+      });
 
       if (mounted) {
-        unlisteners.push(unlistenReading, unlistenStatus);
+        unlisteners.push(unlistenReading, unlistenStatus, unlistenRecordingStarted, unlistenRecordingStopped);
       } else {
         unlistenReading();
         unlistenStatus();
+        unlistenRecordingStarted();
+        unlistenRecordingStopped();
       }
     }
 
@@ -46,5 +55,5 @@ export function useHeartRateEvents() {
       mounted = false;
       unlisteners.forEach((unlisten) => unlisten());
     };
-  }, [applyReading, setError, setStatus, setTauriUnavailable]);
+  }, [applyReading, setError, setStatus, setRecordingPath, setTauriUnavailable]);
 }

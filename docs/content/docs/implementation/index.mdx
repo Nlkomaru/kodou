@@ -36,7 +36,17 @@ React 側へイベントとして心拍データを流します。
 - `heart-rate-status` イベントで接続状態を表示する。
 - `heart-rate-reading` イベントでBPM、RR interval、battery、sensor contactを更新する。
 
-## 5. 次にやること
+## 5. 記録状態の通知
+
+心拍データの記録（Parquet）は Rust 側で行いますが、記録中かどうかと保存先を UI で確認できるように、記録の開始・終了をイベントで通知します。
+
+- `recording-started` イベントで、書き込み中の Parquet ファイルのパスを送る。
+- `recording-stopped` イベントで、記録の終了を送る。
+- React 側は `recordingPathAtom` にパスを保持し、履歴ページで「記録中」の表示と保存先パスを出す。
+
+ファイルは接続を切ったタイミングで確定（close）されます。
+
+## 6. 次にやること
 
 - [ ] 実機のHRMでWindows/macOS/Linuxそれぞれのscanとsubscribe挙動を確認する。
 - [x] 接続が切れた場合の自動再接続を追加する。Rust 側で指数バックオフ（1s→最大30s）による再接続を行い、`heart-rate-status` の `reconnecting` 状態を送る。

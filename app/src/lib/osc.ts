@@ -6,7 +6,25 @@ export type TaggedOscMessage = OscMessage & { key: OscParamKey };
 // VRChatのAvatar Parameter OSCで使う先頭アドレス。
 // iron-heart互換モードでもこのprefixのまま送る。
 export const DEFAULT_OSC_TARGET = "127.0.0.1:9000";
+export const DEFAULT_OSC_TARGETS: string[] = [DEFAULT_OSC_TARGET];
 export const KODOU_PREFIX = "/avatar/parameters/Kodou";
+
+// 「1行1つ」で書かれた送信先テキストを配列へ変換する。空行と前後の空白は無視する。
+export function parseOscTargets(text: string): string[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+// config.conf 由来の送信先とGUIで入力された送信先を統合する。
+// 両方に同じ "ip:port" が書かれていても二重送信しないよう、重複は取り除く。
+export function mergeOscTargets(configTargets: string[], guiTargets: string[]): string[] {
+  const merged = [...configTargets, ...guiTargets]
+    .map((target) => target.trim())
+    .filter((target) => target.length > 0);
+  return [...new Set(merged)];
+}
 
 // Kodou標準の各OSCパラメータ。
 // UIのチェックボックスと送信先アドレスを1箇所で管理する。

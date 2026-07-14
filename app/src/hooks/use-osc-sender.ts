@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import {
   beatIntervalMs,
   buildStaticOscMessages,
@@ -17,13 +17,14 @@ import {
 } from "@/state/heart-rate";
 import {
   beatPulseMsAtom,
+  configOscTargetsAtom,
+  effectiveOscTargetsAtom,
   hrBoundsAtom,
   hrFloatModeAtom,
   ironHeartCompatAtom,
   oscAverageWindowMsAtom,
   oscEnabledAtom,
   oscParamsAtom,
-  oscTargetAtom,
   rrTwitchThresholdMsAtom,
   vrcoscCompatAtom,
 } from "@/state/osc";
@@ -45,7 +46,8 @@ async function sendMessages(messages: OscMessage[]) {
 // ArrRRTwitchUp/DownはRR間隔の変化点で短いパルスを送る。
 export function useOscSender() {
   const enabled = useAtomValue(oscEnabledAtom);
-  const target = useAtomValue(oscTargetAtom);
+  const targets = useAtomValue(effectiveOscTargetsAtom);
+  const setConfigTargets = useSetAtom(configOscTargetsAtom);
   const params = useAtomValue(oscParamsAtom);
   const reading = useAtomValue(readingAtom);
   const status = useAtomValue(statusAtom);
@@ -64,15 +66,28 @@ export function useOscSender() {
     bpmRef.current = reading?.bpm ?? 0;
   }, [reading]);
 
-  // Rust側の送信先を設定する。無効化時はtargetにnullを送って送信を止める。
+  // 起動時にconfig.confの送信先を1度だけ読み込む。
+  // 以降はGUIの送信先と統合したうえでRust側へ渡す。
   useEffect(() => {
     if (!isTauriRuntime()) return;
-    const configuredTarget = enabled ? target : null;
-    invoke("configure_osc", { target: configuredTarget }).catch((error) => {
+    invoke<string[]>("get_config_osc_targets")
+      .then((configTargets) => setConfigTargets(configTargets))
+      .catch((error) => {
+        // config.confが読めなくてもGUIの送信先だけで動作させる。
+        // eslint-disable-next-line no-console
+        console.error("config.confの送信先を読み込めませんでした", error);
+      });
+  }, [setConfigTargets]);
+
+  // Rust側の送信先を設定する。無効化時は空配列を送り、config.conf分も含めて送信を止める。
+  useEffect(() => {
+    if (!isTauriRuntime()) return;
+    const configuredTargets = enabled ? targets : [];
+    invoke("configure_osc", { targets: configuredTargets }).catch((error) => {
       // eslint-disable-next-line no-console
       console.error("OSC設定に失敗しました", error);
     });
-  }, [enabled, target]);
+  }, [enabled, targets]);
 
   // 静的パラメータを組み立てて送る。
   const staticMessages = useMemo<TaggedOscMessage[]>(() => {

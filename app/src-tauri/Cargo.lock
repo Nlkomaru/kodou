@@ -1734,6 +1734,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "hocon-parser"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23e0bf3ebafa6866894b3a0c7dd5aa2e680f682e731421b48064935909995cf5"
+dependencies = [
+ "indexmap 2.14.0",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "html5ever"
 version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2194,6 +2205,7 @@ dependencies = [
  "arrow-schema",
  "btleplug",
  "futures",
+ "hocon-parser",
  "parquet",
  "rosc",
  "serde",

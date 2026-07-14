@@ -1,5 +1,5 @@
 import { atom } from "jotai";
-import { DEFAULT_OSC_TARGET, OSC_PARAM_META, type OscParamKey } from "@/lib/osc";
+import { DEFAULT_OSC_TARGETS, mergeOscTargets, OSC_PARAM_META, type OscParamKey } from "@/lib/osc";
 
 // OSC用の平均窓は state/heart-rate で定義しているため再エクスポートし、
 // UI/hookからは "@/state/osc" で完結して参照できるようにする。
@@ -29,7 +29,17 @@ const defaultParams: Record<OscParamKey, boolean> = {
 };
 
 export const oscEnabledAtom = atom(false);
-export const oscTargetAtom = atom(DEFAULT_OSC_TARGET);
+
+// GUIで編集する送信先。アプリを閉じると失われるため、常用する送信先は config.conf に書く。
+export const oscTargetsAtom = atom<string[]>(DEFAULT_OSC_TARGETS);
+
+// config.conf の osc.targets。起動時にRustから読み込む読み取り専用の値。
+export const configOscTargetsAtom = atom<string[]>([]);
+
+// 実際にRustへ渡す送信先。config.confとGUIの送信先を統合し、重複を除く。
+export const effectiveOscTargetsAtom = atom((get) =>
+  mergeOscTargets(get(configOscTargetsAtom), get(oscTargetsAtom)),
+);
 
 export const oscParamsAtom = atom<Record<OscParamKey, boolean>>(defaultParams);
 

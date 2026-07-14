@@ -31,6 +31,8 @@ uuid = "1"
 arrow-array = "54"
 arrow-schema = "54"
 parquet = { version = "54", default-features = false, features = ["arrow", "snap"] }
+# OSC送信先などユーザーが編集する設定をHOCON形式で読み込む。
+hocon-parser = { version = "1", features = ["serde"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

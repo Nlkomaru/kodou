@@ -18,9 +18,20 @@ iron-heart では `prefix = "/avatar/parameters/"` の下に、`isHRConnected` �
 - [x] VRCOSC 互換の心拍パラメータ送信
 - [x] iron-heart 互換の心拍パラメータ送信
 - [x] 送信するパラメータを選ぶチェックボックス UI
+- [x] 複数の送信先への同時送信
 
 現時点のアプリは、Bluetooth Heart Rate Monitor から心拍データを取得し、Tauri イベントとして React 側に渡します。
 OSC 送信は Rust 側（rosc）で UDP 送信し、React 側のチェックボックスで各パラメータの有効・無効と互換モードを切り替えられます。
+
+## 送信先
+
+送信先は `"ip:port"` 形式で複数指定でき、指定したすべての送信先へ同じパラメータを送ります。
+VRChat の Avatar Parameter OSC は通常 `127.0.0.1:9000` で待ち受けます。
+
+送信先は次の2か所で指定でき、両方に書いた場合は統合されます。
+
+- アプリ内の OSC 設定 UI（1行に1つ入力する。アプリを閉じると失われる）
+- [設定ファイル `config.conf`](/docs/config/config-file)（再起動後も保持される）
 
 ## Kodou 標準アドレス
 

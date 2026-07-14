@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAtom, useSetAtom, useAtomValue } from "jotai";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -5,15 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { OSC_PARAM_META } from "@/lib/osc";
+import { Textarea } from "@/components/ui/textarea";
+import { OSC_PARAM_META, parseOscTargets } from "@/lib/osc";
 import {
   beatPulseMsAtom,
+  configOscTargetsAtom,
   hrBoundsAtom,
   hrFloatModeAtom,
   ironHeartCompatAtom,
   oscEnabledAtom,
   oscParamsAtom,
-  oscTargetAtom,
+  oscTargetsAtom,
   oscAverageWindowMsAtom,
   rrTwitchThresholdMsAtom,
   toggleOscParamAtom,
@@ -25,7 +28,10 @@ import type { OscParamKey } from "@/lib/osc";
 // チェックを入れたKodou標準/互換パラメータをVRChatへ流す。
 export function OscPanel() {
   const [enabled, setEnabled] = useAtom(oscEnabledAtom);
-  const [target, setTarget] = useAtom(oscTargetAtom);
+  const [targets, setTargets] = useAtom(oscTargetsAtom);
+  const configTargets = useAtomValue(configOscTargetsAtom);
+  // テキストエリアの表示文字列。atomは解析済みの配列を持つため、入力中の生テキストはここで保持する。
+  const [targetsDraft, setTargetsDraft] = useState(() => targets.join("\n"));
   const params = useAtomValue(oscParamsAtom);
   const toggleParam = useSetAtom(toggleOscParamAtom);
   const [bounds, setBounds] = useAtom(hrBoundsAtom);
@@ -53,13 +59,27 @@ export function OscPanel() {
       <CardContent className="flex flex-col gap-5">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1">
-            <Label className="text-xs font-bold text-muted-foreground">送信先 (ip:port)</Label>
-            <Input
-              value={target}
-              onChange={(event) => setTarget(event.target.value)}
+            <Label className="text-xs font-bold text-muted-foreground">送信先 (1行1つ, ip:port)</Label>
+            <Textarea
+              value={targetsDraft}
+              onChange={(event) => {
+                // 入力途中の空行や末尾の改行を保つため、生の文字列はローカルに持ち、atomには解析結果を渡す。
+                setTargetsDraft(event.target.value);
+                setTargets(parseOscTargets(event.target.value));
+              }}
               disabled={!enabled}
+              rows={2}
               placeholder="127.0.0.1:9000"
             />
+            {configTargets.length > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                config.conf の送信先（{configTargets.join(", ")}）にも併せて送信します
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                常用する送信先は config.conf に書くとアプリ再起動後も保持されます
+              </p>
+            )}
           </div>
           <div className="grid gap-1">
             <Label className="text-xs font-bold text-muted-foreground">平均窓 (ms)</Label>
