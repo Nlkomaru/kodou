@@ -3,30 +3,21 @@ import { invoke } from "@tauri-apps/api/core";
 import { useAtomValue, useSetAtom } from "jotai";
 import {
   beatIntervalMs,
-  buildStaticOscMessages,
-  KODOU_PREFIX,
-  stripKeys,
-  withCompat,
-  type TaggedOscMessage,
+  buildStaticOscValues,
+  expandByAddressMap,
+  hasAddress,
+  type AppConfig,
+  type OscParamValue,
 } from "@/lib/osc";
 import { isTauriRuntime } from "@/lib/heart-rate";
+import { readingAtom, oscStatsAtom, statusAtom } from "@/state/heart-rate";
 import {
-  readingAtom,
-  oscStatsAtom,
-  statusAtom,
-} from "@/state/heart-rate";
-import {
-  beatPulseMsAtom,
-  configOscTargetsAtom,
-  effectiveOscTargetsAtom,
-  hrBoundsAtom,
-  hrFloatModeAtom,
-  ironHeartCompatAtom,
+  oscAddressesAtom,
   oscAverageWindowMsAtom,
+  oscConfigAtom,
   oscEnabledAtom,
-  oscParamsAtom,
-  rrTwitchThresholdMsAtom,
-  vrcoscCompatAtom,
+  oscSettingsAtom,
+  oscTargetsAtom,
 } from "@/state/osc";
 import type { OscMessage } from "@/lib/heart-rate-types";
 
@@ -42,44 +33,40 @@ async function sendMessages(messages: OscMessage[]) {
 }
 
 // OSC送信を一手に引き受けるhook。
-// 静的パラメータは読み取り時にまとめて送り、BeatToggle/BeatPulseは拍周期タイマーで送る。
-// ArrRRTwitchUp/DownはRR間隔の変化点で短いパルスを送る。
+// 送信先・送信するパラメータのアドレス・数値設定はすべて config.conf 由来で、
+// UIからは送信のON/OFFだけを切り替える。
 export function useOscSender() {
   const enabled = useAtomValue(oscEnabledAtom);
-  const targets = useAtomValue(effectiveOscTargetsAtom);
-  const setConfigTargets = useSetAtom(configOscTargetsAtom);
-  const params = useAtomValue(oscParamsAtom);
+  const settings = useAtomValue(oscSettingsAtom);
+  const targets = useAtomValue(oscTargetsAtom);
+  const addresses = useAtomValue(oscAddressesAtom);
+  const setConfig = useSetAtom(oscConfigAtom);
+  const setAverageWindowMs = useSetAtom(oscAverageWindowMsAtom);
   const reading = useAtomValue(readingAtom);
   const status = useAtomValue(statusAtom);
   const stats = useAtomValue(oscStatsAtom);
-  const bounds = useAtomValue(hrBoundsAtom);
-  const floatMode = useAtomValue(hrFloatModeAtom);
-  const ironHeart = useAtomValue(ironHeartCompatAtom);
-  const vrcosc = useAtomValue(vrcoscCompatAtom);
-  const beatPulseMs = useAtomValue(beatPulseMsAtom);
-  const rrThreshold = useAtomValue(rrTwitchThresholdMsAtom);
-  // oscAverageWindowMsAtom を監視してuseEffect再実行させるだけ。値はoscStatsAtom経由で参照される。
-  useAtomValue(oscAverageWindowMsAtom);
 
   const bpmRef = useRef(0);
   useEffect(() => {
     bpmRef.current = reading?.bpm ?? 0;
   }, [reading]);
 
-  // 起動時にconfig.confの送信先を1度だけ読み込む。
-  // 以降はGUIの送信先と統合したうえでRust側へ渡す。
+  // 起動時に config.conf を1度だけ読み込む。
+  // 平均窓は心拍統計の計算にも使うため、専用のatomへ反映する。
   useEffect(() => {
     if (!isTauriRuntime()) return;
-    invoke<string[]>("get_config_osc_targets")
-      .then((configTargets) => setConfigTargets(configTargets))
+    invoke<AppConfig>("get_config")
+      .then((config) => {
+        setConfig(config);
+        setAverageWindowMs(config.osc.averageWindowMs);
+      })
       .catch((error) => {
-        // config.confが読めなくてもGUIの送信先だけで動作させる。
         // eslint-disable-next-line no-console
-        console.error("config.confの送信先を読み込めませんでした", error);
+        console.error("config.confを読み込めませんでした", error);
       });
-  }, [setConfigTargets]);
+  }, [setConfig, setAverageWindowMs]);
 
-  // Rust側の送信先を設定する。無効化時は空配列を送り、config.conf分も含めて送信を止める。
+  // Rust側の送信先を設定する。無効化時は空配列を送って送信を止める。
   useEffect(() => {
     if (!isTauriRuntime()) return;
     const configuredTargets = enabled ? targets : [];
@@ -89,47 +76,48 @@ export function useOscSender() {
     });
   }, [enabled, targets]);
 
-  // 静的パラメータを組み立てて送る。
-  const staticMessages = useMemo<TaggedOscMessage[]>(() => {
+  const bounds = useMemo(
+    () => ({ min: settings.bpmMin, max: settings.bpmMax }),
+    [settings.bpmMin, settings.bpmMax],
+  );
+
+  // 静的パラメータを組み立て、config.confのアドレス表に従って展開する。
+  const staticMessages = useMemo<OscMessage[]>(() => {
     if (!enabled) return [];
-    return withCompat(
-      buildStaticOscMessages({
-        reading,
-        status,
-        stats,
-        params,
-        bounds,
-        floatMode,
-      }),
-      ironHeart,
-      vrcosc,
-    );
-  }, [enabled, reading, status, stats, params, bounds, floatMode, ironHeart, vrcosc]);
+    const values = buildStaticOscValues({
+      reading,
+      status,
+      stats,
+      bounds,
+      floatMode: settings.hrFloatMode,
+    });
+    return expandByAddressMap(values, addresses);
+  }, [enabled, reading, status, stats, bounds, settings.hrFloatMode, addresses]);
 
   useEffect(() => {
     if (!enabled || !isTauriRuntime()) return;
-    void sendMessages(stripKeys(staticMessages));
+    void sendMessages(staticMessages);
   }, [enabled, staticMessages]);
 
   // 拍周期でBeatToggle/BeatPulseを送る。
   // 拍タイマーはbpmRefを見るため、BPM変化で再起動せずとも次拍で間隔が追従する。
+  const sendsBeatToggle = hasAddress(addresses, "beatToggle");
+  const sendsBeatPulse = hasAddress(addresses, "beatPulse");
+  const beatPulseMs = settings.beatPulseMs;
   useEffect(() => {
     if (!enabled || !isTauriRuntime()) return;
-    if (!params.beatToggle && !params.beatPulse) return;
+    if (!sendsBeatToggle && !sendsBeatPulse) return;
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     let pulseOffTimer: ReturnType<typeof setTimeout> | undefined;
     let parity = false;
 
     const buildBeatMessages = (beatToggleValue: boolean, beatPulseValue: boolean): OscMessage[] => {
-      const messages: TaggedOscMessage[] = [];
-      if (params.beatToggle) {
-        messages.push({ key: "beatToggle", address: `${KODOU_PREFIX}/BeatToggle`, arg: { kind: "Bool", value: beatToggleValue } });
-      }
-      if (params.beatPulse) {
-        messages.push({ key: "beatPulse", address: `${KODOU_PREFIX}/BeatPulse`, arg: { kind: "Bool", value: beatPulseValue } });
-      }
-      return stripKeys(withCompat(messages, ironHeart, vrcosc));
+      const values: OscParamValue[] = [
+        { key: "beatToggle", arg: { kind: "Bool", value: beatToggleValue } },
+        { key: "beatPulse", arg: { kind: "Bool", value: beatPulseValue } },
+      ];
+      return expandByAddressMap(values, addresses);
     };
 
     const tick = () => {
@@ -149,15 +137,18 @@ export function useOscSender() {
       if (timer) clearTimeout(timer);
       if (pulseOffTimer) clearTimeout(pulseOffTimer);
     };
-  }, [enabled, params.beatToggle, params.beatPulse, beatPulseMs, ironHeart, vrcosc]);
+  }, [enabled, sendsBeatToggle, sendsBeatPulse, beatPulseMs, addresses]);
 
   // RR TwitchUp/DownはRR間隔がしきい値以上に変化した拍で短時間trueを送る。
   // 直前のRR間隔を比較して、BeatPulseのfalseパルスと同じ要領で戻す。
+  const sendsTwitchUp = hasAddress(addresses, "rrTwitchUp");
+  const sendsTwitchDown = hasAddress(addresses, "rrTwitchDown");
+  const rrThreshold = settings.rrTwitchThresholdMs;
   const prevRrRef = useRef<number | null>(null);
   const prevReadingBpmRef = useRef<number | null>(null);
   useEffect(() => {
     if (!enabled || !isTauriRuntime()) return;
-    if (!params.rrTwitchUp && !params.rrTwitchDown) return;
+    if (!sendsTwitchUp && !sendsTwitchDown) return;
     if (!reading) return;
     // 新しい心拍通知が来たときだけ差分を評価する。同じ通知で複数回呼ばない。
     if (prevReadingBpmRef.current === reading.bpm) return;
@@ -179,15 +170,13 @@ export function useOscSender() {
     else if (delta <= -rrThreshold) triggeredKey = "rrTwitchDown";
     if (!triggeredKey) return;
 
-    const address =
-      triggeredKey === "rrTwitchUp" ? `${KODOU_PREFIX}/RRTwitchUp` : `${KODOU_PREFIX}/RRTwitchDown`;
-    const build = (value: boolean): OscMessage[] => {
-      const messages: TaggedOscMessage[] = [{ key: triggeredKey, address, arg: { kind: "Bool", value } }];
-      return stripKeys(withCompat(messages, ironHeart, vrcosc));
-    };
+    const key = triggeredKey;
+    const build = (value: boolean): OscMessage[] =>
+      expandByAddressMap([{ key, arg: { kind: "Bool", value } }], addresses);
+
     void sendMessages(build(true));
     const offDelay = Math.min(beatPulseMs, 200);
     const offTimer = setTimeout(() => void sendMessages(build(false)), offDelay);
     return () => clearTimeout(offTimer);
-  }, [enabled, reading, params.rrTwitchUp, params.rrTwitchDown, rrThreshold, ironHeart, vrcosc, beatPulseMs]);
+  }, [enabled, reading, sendsTwitchUp, sendsTwitchDown, rrThreshold, beatPulseMs, addresses]);
 }

@@ -12,12 +12,11 @@ Kodou は、Bluetooth の心拍センサー（HRM）から心拍データを取�
 - [x] Bluetooth HRM デバイスの検出と接続（BLE Heart Rate Service）
 - [x] 心拍数・RR間隔・バッテリー残量の取得
 - [x] 接続断からの自動再接続（指数バックオフ）
-- [x] VRChat への OSC 送信（`/avatar/parameters/Kodou/...`）
-- [x] VRCOSC / iron-heart 互換モード
-- [x] 送信パラメータの個別 ON/OFF
-- [x] 複数の OSC 送信先への同時送信（[設定ファイル](/docs/config/config-file)で指定）
+- [x] VRChat への OSC 送信（既定は VRCOSC 互換アドレス）
+- [x] 送信するパラメータとアドレスを [設定ファイル](/docs/config/config-file) で指定
+- [x] 複数の OSC 送信先への同時送信
 - [x] 統計表示（平均・最大・最小 BPM、RMSSD）
-- [x] 心拍データの記録（Parquet）と記録状態の表示
+- [x] 心拍データの自動記録（Parquet）と記録状態の表示
 - [ ] 周波数領域の HRV 解析（LF / HF）
 - [ ] 自律神経状態の判定結果を OSC 送信
 

@@ -33,6 +33,8 @@ arrow-schema = "54"
 parquet = { version = "54", default-features = false, features = ["arrow", "snap"] }
 # OSC送信先などユーザーが編集する設定をHOCON形式で読み込む。
 hocon-parser = { version = "1", features = ["serde"] }
+# 記録ファイル名を「年月/年月日_連番」にするため、ローカル時刻の日付を使う。
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

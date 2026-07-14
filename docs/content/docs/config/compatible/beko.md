@@ -6,8 +6,9 @@ description: べこのみせ様の VRC Heart Rate 対応アバターを Kodou �
 [べこのみせ様の VRC Heart Rate](https://shop.beko.ooo/category/-vrc-heart-rate/) は、VRChat 向けに配布されている心拍表示アバターギミックです。
 
 このギミックは VRCOSC の Heartrate モジュールが送る Avatar Parameter を前提としています。
-そのため Kodou から使う場合は、設定画面で **VRCOSC 互換** を有効にしてください。
-Kodou 標準の `/avatar/parameters/Kodou/...` に加えて `/avatar/parameters/VRCOSC/Heartrate/...` へも同じ値が送られるため、ギミック側の改変なしで動作します。
+Kodou は既定で `/avatar/parameters/VRCOSC/Heartrate/...` へ送信するため、追加の設定なしで動作します。ギミック側の改変も不要です。
+
+心拍データを送るには、アプリの OSC 画面で「送信を有効化」をオンにしてください。
 
 送信されるパラメータの対応表は [VRCOSC との互換性](/docs/config/compatible/osc) を参照してください。
 

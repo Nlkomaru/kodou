@@ -36,19 +36,37 @@ React 側へイベントとして心拍データを流します。
 - `heart-rate-status` イベントで接続状態を表示する。
 - `heart-rate-reading` イベントでBPM、RR interval、battery、sensor contactを更新する。
 
-## 5. 記録状態の通知
+## 5. 記録
 
-心拍データの記録（Parquet）は Rust 側で行いますが、記録中かどうかと保存先を UI で確認できるように、記録の開始・終了をイベントで通知します。
+デバイスへ接続すると、心拍データの記録が自動で始まります。記録するかどうかの設定はありません。
+
+### 保存先とファイル名
+
+アプリのデータディレクトリ配下 `recordings/` に、年月フォルダ + 日付 + 連番で保存します。
+
+```text
+recordings/
+  2026-06/
+    2026-06-01_1.parquet
+    2026-06-01_2.parquet
+    2026-06-02_1.parquet
+```
+
+- 接続するたびに新しいファイルを作り、同じ日の記録は連番（`_1`, `_2`, ...）で並べます。
+- 日付は、利用者が探しやすいよう UTC ではなくローカル時刻で決めます（各行のタイムスタンプは UTC のエポックミリ秒）。
+- ファイルは接続を切ったタイミングで確定（close）されます。
+
+### 記録状態の通知
+
+記録中かどうかと保存先を UI で確認できるように、記録の開始・終了をイベントで通知します。
 
 - `recording-started` イベントで、書き込み中の Parquet ファイルのパスを送る。
 - `recording-stopped` イベントで、記録の終了を送る。
 - React 側は `recordingPathAtom` にパスを保持し、履歴ページで「記録中」の表示と保存先パスを出す。
 
-ファイルは接続を切ったタイミングで確定（close）されます。
-
 ## 6. 次にやること
 
 - [ ] 実機のHRMでWindows/macOS/Linuxそれぞれのscanとsubscribe挙動を確認する。
 - [x] 接続が切れた場合の自動再接続を追加する。Rust 側で指数バックオフ（1s→最大30s）による再接続を行い、`heart-rate-status` の `reconnecting` 状態を送る。
-- [x] VRChat向けにOSC送信を追加する。Rust 側（rosc）で UDP 送信し、React 側で `/avatar/parameters/Kodou/...` の各パラメータと iron-heart/VRCOSC 互換モードを切り替えられる。詳細は [OSC送信](../osc) を参照。
+- [x] VRChat向けにOSC送信を追加する。Rust 側（rosc）で UDP 送信し、送信するパラメータとアドレスは `config.conf` の `compatibility` セクションで指定する。詳細は [OSC送信](/docs/osc) を参照。
 - [x] 心拍履歴を保存し、平均・最大・最小・HRVを算出する。BPM/RR 履歴から平均・最大・最小 BPM と RR 間隔の RMSSD を算出して統計表示と `Kodou/HRAverage` に使う。

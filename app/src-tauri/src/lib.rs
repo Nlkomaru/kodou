@@ -242,7 +242,7 @@ pub fn run() {
             stop_heart_rate_monitor,
             osc::configure_osc,
             osc::send_osc,
-            config::get_config_osc_targets
+            config::get_config
         ])
         .setup(|app| {
             // config.conf が未作成ならテンプレートを生成しておく。

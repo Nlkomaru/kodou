@@ -3,84 +3,63 @@ title: 送信される情報
 description: OSC 経由で VRChat に送信される Avatar Parameter の一覧
 ---
 
-このページでは、VRChat に送信する OSC パラメータを整理します。
-各パラメータの ON/OFF や正規化範囲は [設定](/docs/config) から変更できます。
+このページでは、Kodou が送信できる OSC パラメータを整理します。
+
+**どのパラメータをどのアドレスへ送るかは、[設定ファイル](/docs/config/config-file) の `compatibility` セクションが決めます。**
+既定のアドレスは VRCOSC 互換で、VRCOSC に対応するものが無いパラメータは Kodou 標準アドレス `/avatar/parameters/Kodou/...` を使います。
 
 参考実装として、VRCOSC の [`HeartrateModule.cs`](https://github.com/VolcanicArts/VRCOSC/blob/7e5fa96c981a23e2a8b78ac4501bf2fa4deb223c/VRCOSC.App/SDK/Modules/Heartrate/HeartrateModule.cs) を確認しています。
 VRCOSC では `VRCOSC/Heartrate/...` というパラメータ名で登録されており、VRChat の Avatar Parameter OSC では通常 `/avatar/parameters/VRCOSC/Heartrate/...` へ送信する形になります。
-
-また、iron-heart の [`settings.rs`](https://github.com/nullstalgia/iron-heart/blob/784c3645353b32250df1691efa052277361d6879/src/settings.rs#L186) と README の既定設定も参考にしています。
-iron-heart では `prefix = "/avatar/parameters/"` の下に、`isHRConnected` や `HR` などの短い Avatar Parameter 名を置く構成です。
 
 ## 実装状況
 
 - [x] VRChat への OSC 送信
 - [x] VRCOSC 互換の心拍パラメータ送信
-- [x] iron-heart 互換の心拍パラメータ送信
-- [x] 送信するパラメータを選ぶチェックボックス UI
+- [x] 送信するパラメータとアドレスを設定ファイルで指定
+- [x] 1つのパラメータを複数アドレスへ複製送信
 - [x] 複数の送信先への同時送信
 
 現時点のアプリは、Bluetooth Heart Rate Monitor から心拍データを取得し、Tauri イベントとして React 側に渡します。
-OSC 送信は Rust 側（rosc）で UDP 送信し、React 側のチェックボックスで各パラメータの有効・無効と互換モードを切り替えられます。
+OSC 送信は Rust 側（rosc）で UDP 送信します。UI では送信のオン・オフだけを切り替え、送信内容は `config.conf` で決めます。
 
 ## 送信先
 
-送信先は `"ip:port"` 形式で複数指定でき、指定したすべての送信先へ同じパラメータを送ります。
+送信先は `config.conf` の `osc.targets` に `"ip:port"` 形式で指定します。
+複数書くと、指定したすべての送信先へ同じパラメータを送ります。
 VRChat の Avatar Parameter OSC は通常 `127.0.0.1:9000` で待ち受けます。
 
-送信先は次の2か所で指定でき、両方に書いた場合は統合されます。
+## パラメータ一覧
 
-- アプリ内の OSC 設定 UI（1行に1つ入力する。アプリを閉じると失われる）
-- [設定ファイル `config.conf`](/docs/config/config-file)（再起動後も保持される）
+下表の「Kodou アドレス」は、`compatibility` セクションで別のアドレスを指定しなかった場合に使われる Kodou 標準アドレスです。
+既定で VRCOSC のアドレスへ送るパラメータは、[設定ファイル](/docs/config/config-file#既定のアドレス) の表を参照してください。
 
-## Kodou 標準アドレス
+「設定キー」が `compatibility` セクションに書くキー名です。
 
-Kodou では、Avatar Parameter 名の衝突を避けるため、標準の送信先を `/avatar/parameters/Kodou/...` にします。
-この表の各行はアプリ内のチェックボックスで個別に有効・無効化できます。
-
-| 実装 | Kodou アドレス | 型 | 対応する値 | 参考元 |
+| 設定キー | Kodou 標準アドレス | 型 | 対応する値 | 既定 |
 | --- | --- | --- | --- | --- |
-| [x] | `/avatar/parameters/Kodou/Connected` | `bool` | 心拍データを受信中なら `true` | VRCOSC `Connected` / iron-heart `isHRConnected` |
-| [x] | `/avatar/parameters/Kodou/Reconnecting` | `bool` | 一時切断を隠して再接続扱いにしている間 `true` | iron-heart `isHRReconnecting` |
-| [x] | `/avatar/parameters/Kodou/HR` | `int` | 現在の心拍数 BPM | VRCOSC `Value` / iron-heart `HR` |
-| [x] | `/avatar/parameters/Kodou/HRFloat` | `float` | 心拍数を float 化した値。既定は `-1.0` から `1.0`、設定次第で `0.0` から `1.0` | iron-heart `floatHR` |
-| [x] | `/avatar/parameters/Kodou/HRNormalised` | `float` | 下限・上限 BPM から `0.0` から `1.0` に正規化した心拍数 | VRCOSC `Normalised` |
-| [x] | `/avatar/parameters/Kodou/HRAverage` | `int` | 指定期間内の平均 BPM | VRCOSC `Average` |
-| [x] | `/avatar/parameters/Kodou/Battery` | `int` | 心拍センサーのバッテリー残量 `0` から `100` | iron-heart `HRBattery` |
-| [x] | `/avatar/parameters/Kodou/BatteryFloat` | `float` | バッテリー残量 `0.0` から `1.0` | iron-heart `HRBatteryFloat` |
-| [x] | `/avatar/parameters/Kodou/BeatToggle` | `bool` | 拍ごとに `true` / `false` を交互に切り替える | VRCOSC `Beat` toggle / iron-heart `HeartBeatToggle` |
-| [x] | `/avatar/parameters/Kodou/BeatPulse` | `bool` | 拍ごとに短時間だけ `true` | VRCOSC `Beat` pulse / iron-heart `isHRBeat` |
-| [x] | `/avatar/parameters/Kodou/RRInterval` | `int` | 最新 RR interval。単位は ms | iron-heart `RRInterval` |
-| [x] | `/avatar/parameters/Kodou/RRTwitchUp` | `bool` | RR interval がしきい値以上に増えたとき、短時間だけ `true` | iron-heart `HRTwitchUp` |
-| [x] | `/avatar/parameters/Kodou/RRTwitchDown` | `bool` | RR interval がしきい値以上に減ったとき、短時間だけ `true` | iron-heart `HRTwitchDown` |
-| [ ] | `/avatar/parameters/Kodou/Activity` | `int` | 選択中のアクティビティ番号 `0` から `255` | iron-heart `HRActivity` |
-| [x] | `/avatar/parameters/Kodou/Legacy/Enabled` | `bool` | 旧形式の接続状態 | VRCOSC `Enabled` |
-| [x] | `/avatar/parameters/Kodou/Legacy/Units` | `float` | BPM の1の位を `0.0` から `0.9` で送信 | VRCOSC `Units` |
-| [x] | `/avatar/parameters/Kodou/Legacy/Tens` | `float` | BPM の10の位を `0.0` から `0.9` で送信 | VRCOSC `Tens` |
-| [x] | `/avatar/parameters/Kodou/Legacy/Hundreds` | `float` | BPM の100の位を `0.0` から `0.9` で送信 | VRCOSC `Hundreds` |
+| `connected` | `/avatar/parameters/Kodou/Connected` | `bool` | 心拍データを受信中なら `true` | VRCOSC へ送信 |
+| `reconnecting` | `/avatar/parameters/Kodou/Reconnecting` | `bool` | 一時切断を隠して再接続扱いにしている間 `true` | Kodou へ送信 |
+| `hr` | `/avatar/parameters/Kodou/HR` | `int` | 現在の心拍数 BPM | VRCOSC へ送信 |
+| `hrFloat` | `/avatar/parameters/Kodou/HRFloat` | `float` | 心拍数を float 化した値。既定は `-1.0` から `1.0`、設定次第で `0.0` から `1.0` | Kodou へ送信 |
+| `hrNormalised` | `/avatar/parameters/Kodou/HRNormalised` | `float` | 下限・上限 BPM から `0.0` から `1.0` に正規化した心拍数 | VRCOSC へ送信 |
+| `hrAverage` | `/avatar/parameters/Kodou/HRAverage` | `int` | 指定期間内の平均 BPM | VRCOSC へ送信 |
+| `battery` | `/avatar/parameters/Kodou/Battery` | `int` | 心拍センサーのバッテリー残量 `0` から `100` | Kodou へ送信 |
+| `batteryFloat` | `/avatar/parameters/Kodou/BatteryFloat` | `float` | バッテリー残量 `0.0` から `1.0` | Kodou へ送信 |
+| `beatToggle` | `/avatar/parameters/Kodou/BeatToggle` | `bool` | 拍ごとに `true` / `false` を交互に切り替える | VRCOSC へ送信 |
+| `beatPulse` | `/avatar/parameters/Kodou/BeatPulse` | `bool` | 拍ごとに短時間だけ `true` | 送信しない |
+| `rrInterval` | `/avatar/parameters/Kodou/RRInterval` | `int` | 最新 RR interval。単位は ms | Kodou へ送信 |
+| `rrTwitchUp` | `/avatar/parameters/Kodou/RRTwitchUp` | `bool` | RR interval がしきい値以上に増えたとき、短時間だけ `true` | 送信しない |
+| `rrTwitchDown` | `/avatar/parameters/Kodou/RRTwitchDown` | `bool` | RR interval がしきい値以上に減ったとき、短時間だけ `true` | 送信しない |
+| `activity` | `/avatar/parameters/Kodou/Activity` | `int` | 選択中のアクティビティ番号 `0` から `255`（未実装） | 送信しない |
+| `legacyEnabled` | `/avatar/parameters/Kodou/Legacy/Enabled` | `bool` | 旧形式の接続状態 | 送信しない |
+| `legacyUnits` | `/avatar/parameters/Kodou/Legacy/Units` | `float` | BPM の1の位を `0.0` から `0.9` で送信 | 送信しない |
+| `legacyTens` | `/avatar/parameters/Kodou/Legacy/Tens` | `float` | BPM の10の位を `0.0` から `0.9` で送信 | 送信しない |
+| `legacyHundreds` | `/avatar/parameters/Kodou/Legacy/Hundreds` | `float` | BPM の100の位を `0.0` から `0.9` で送信 | 送信しない |
 
-## iron-heart 互換パラメータ
+`beatToggle` と `beatPulse` は VRCOSC ではどちらも `Beat` に対応するため、既定では `beatToggle` のみを送信します。
 
-iron-heart 互換モードを用意する場合は、以下の既定名へ送信します。
-アドレスは `prefix` とパラメータ名を結合したものです。
-
-| 実装 | iron-heart 名 | OSC アドレス | 型 | Kodou 標準での対応 |
-| --- | --- | --- | --- | --- |
-| [x] | `isHRConnected` | `/avatar/parameters/isHRConnected` | `bool` | `Kodou/Connected` |
-| [x] | `isHRReconnecting` | `/avatar/parameters/isHRReconnecting` | `bool` | `Kodou/Reconnecting` |
-| [x] | `HRBattery` | `/avatar/parameters/HRBattery` | `int` | `Kodou/Battery` |
-| [x] | `HRBatteryFloat` | `/avatar/parameters/HRBatteryFloat` | `float` | `Kodou/BatteryFloat` |
-| [x] | `HeartBeatToggle` | `/avatar/parameters/HeartBeatToggle` | `bool` | `Kodou/BeatToggle` |
-| [x] | `isHRBeat` | `/avatar/parameters/isHRBeat` | `bool` | `Kodou/BeatPulse` |
-| [x] | `HR` | `/avatar/parameters/HR` | `int` | `Kodou/HR` |
-| [x] | `floatHR` | `/avatar/parameters/floatHR` | `float` | `Kodou/HRFloat` |
-| [x] | `RRInterval` | `/avatar/parameters/RRInterval` | `int` | `Kodou/RRInterval` |
-| [x] | `HRTwitchUp` | `/avatar/parameters/HRTwitchUp` | `bool` | `Kodou/RRTwitchUp` |
-| [x] | `HRTwitchDown` | `/avatar/parameters/HRTwitchDown` | `bool` | `Kodou/RRTwitchDown` |
-| [ ] | `HRActivity` | `/avatar/parameters/HRActivity` | `int` | `Kodou/Activity` |
-
-iron-heart の `RRInterval` は `int` ですが、README では「値が大きくなりやすく同期用途には向かず、主にローカルデバッグ用」と説明されています。
-VRChat の Avatar Parameter として実用する場合は、`RRTwitchUp` / `RRTwitchDown` のような bool トリガーのほうが扱いやすいです。
+`RRInterval` は値が大きく変化しやすいため、同期用途には向きません。
+アバター側で拍の揺らぎを表現したい場合は、`RRTwitchUp` / `RRTwitchDown` のような bool トリガーのほうが扱いやすいです。
 
 ## アプリ内データとの対応
 
@@ -91,9 +70,9 @@ VRChat の Avatar Parameter として実用する場合は、`RRTwitchUp` / `RRT
 | `Kodou/RRInterval` | `heart-rate-reading.rrIntervalsMs` の最新値 | 取得済み |
 | `Kodou/Battery` | `heart-rate-reading.batteryPercent` | デバイスが Battery Service を公開している場合のみ取得 |
 | `Kodou/BeatToggle` / `Kodou/BeatPulse` | `bpm` から拍間隔を推定して生成 | 実装済み（拍周期タイマーで送信） |
-| `Kodou/HRAverage` | BPM 履歴から計算 | 実装済み（平均窓は UI で設定可能、既定 10000ms） |
-| `Kodou/HRNormalised` / `Kodou/HRFloat` | `bpm` から計算 | 実装済み（下限・上限と HRFloat の範囲は UI で設定可能） |
-| `Kodou/RRTwitchUp` / `Kodou/RRTwitchDown` | 連続する RR interval の差分から計算 | 実装済み（しきい値は UI で設定可能、既定 50ms） |
+| `Kodou/HRAverage` | BPM 履歴から計算 | 実装済み（平均窓は `osc.averageWindowMs`、既定 10000ms） |
+| `Kodou/HRNormalised` / `Kodou/HRFloat` | `bpm` から計算 | 実装済み（下限・上限は `osc.bpmMin` / `osc.bpmMax`、HRFloat の範囲は `osc.hrFloatMode`） |
+| `Kodou/RRTwitchUp` / `Kodou/RRTwitchDown` | 連続する RR interval の差分から計算 | 実装済み（しきい値は `osc.rrTwitchThresholdMs`、既定 50ms） |
 | `Kodou/Reconnecting` | 自動再接続中 `true` | 実装済み（Rust 側で指数バックオフ再接続） |
 | `Kodou/Activity` | 未実装 | アクティビティ選択 UI を追加する場合に使用 |
 
