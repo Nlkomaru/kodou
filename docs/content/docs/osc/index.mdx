@@ -51,10 +51,6 @@ VRChat の Avatar Parameter OSC は通常 `127.0.0.1:9000` で待ち受けます
 | `rrTwitchUp` | `/avatar/parameters/Kodou/RRTwitchUp` | `bool` | RR interval がしきい値以上に増えたとき、短時間だけ `true` | 送信しない |
 | `rrTwitchDown` | `/avatar/parameters/Kodou/RRTwitchDown` | `bool` | RR interval がしきい値以上に減ったとき、短時間だけ `true` | 送信しない |
 | `activity` | `/avatar/parameters/Kodou/Activity` | `int` | 選択中のアクティビティ番号 `0` から `255`（未実装） | 送信しない |
-| `legacyEnabled` | `/avatar/parameters/Kodou/Legacy/Enabled` | `bool` | 旧形式の接続状態 | 送信しない |
-| `legacyUnits` | `/avatar/parameters/Kodou/Legacy/Units` | `float` | BPM の1の位を `0.0` から `0.9` で送信 | 送信しない |
-| `legacyTens` | `/avatar/parameters/Kodou/Legacy/Tens` | `float` | BPM の10の位を `0.0` から `0.9` で送信 | 送信しない |
-| `legacyHundreds` | `/avatar/parameters/Kodou/Legacy/Hundreds` | `float` | BPM の100の位を `0.0` から `0.9` で送信 | 送信しない |
 
 `beatToggle` と `beatPulse` は VRCOSC ではどちらも `Beat` に対応するため、既定では `beatToggle` のみを送信します。
 
@@ -85,12 +81,9 @@ VRChat の Avatar Parameter OSC は通常 `127.0.0.1:9000` で待ち受けます
 | [x] | `Normalised` | `/avatar/parameters/VRCOSC/Heartrate/Normalised` | `float` | 心拍数を下限・上限 BPM の範囲から `0.0` から `1.0` に正規化した値 |
 | [x] | `Average` | `/avatar/parameters/VRCOSC/Heartrate/Average` | `int` | 指定期間内の平均心拍数 BPM。スムージング設定が有効な場合は補間後の値を四捨五入 |
 | [x] | `Beat` | `/avatar/parameters/VRCOSC/Heartrate/Beat` | `bool` | 心拍タイミングで変化する値。Beat Mode が無効なら拍ごとに `true` / `false` をトグル、有効なら拍ごとに `true` になり短時間後に `false` へ戻る |
-| [x] | `Enabled` | `/avatar/parameters/VRCOSC/Heartrate/Enabled` | `bool` | 旧形式の接続状態。心拍データを受信中なら `true`、未受信なら `false` |
-| [x] | `Units` | `/avatar/parameters/VRCOSC/Heartrate/Units` | `float` | 旧形式の1の位。現在 BPM の1の位を `0.0` から `0.9` で送信 |
-| [x] | `Tens` | `/avatar/parameters/VRCOSC/Heartrate/Tens` | `float` | 旧形式の10の位。現在 BPM の10の位を `0.0` から `0.9` で送信 |
-| [x] | `Hundreds` | `/avatar/parameters/VRCOSC/Heartrate/Hundreds` | `float` | 旧形式の100の位。現在 BPM の100の位を `0.0` から `0.9` で送信 |
+| [ ] | `Enabled` / `Units` / `Tens` / `Hundreds` | `/avatar/parameters/VRCOSC/Heartrate/...` | `bool` / `float` | BPM を3桁に分解して送る旧形式のパラメータ。Kodou では対応しません |
 
-未受信時は `Connected` / `Enabled` が `false` になり、`Value` / `Average` / `Normalised` と旧形式の桁パラメータは `0` 相当になります。
+未受信時は `Connected` が `false` になり、`Value` / `Average` / `Normalised` は `0` 相当になります。
 
 ## 送信値の計算
 
@@ -127,16 +120,3 @@ delayMs = round(60 * 1000 / bpm)
 
 Beat Mode が無効な場合は、拍ごとに `true` / `false` が交互に切り替わります。
 Beat Mode が有効な場合は、拍ごとに `true` を送り、短時間後に `false` へ戻します。
-
-### Legacy digits
-
-旧形式の `Units` / `Tens` / `Hundreds` は、BPM を3桁に分解して各桁を `10` で割った `float` として送ります。
-
-例: `123 BPM`
-
-| パラメータ | 値 |
-| --- | --- |
-| `Hundreds` | `0.1` |
-| `Tens` | `0.2` |
-| `Units` | `0.3` |
-

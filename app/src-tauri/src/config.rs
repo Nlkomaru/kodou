@@ -55,7 +55,7 @@ pub struct AppConfig {
 /// BeatToggle と BeatPulse は VRCOSC ではどちらも `Beat` に対応するため、
 /// 同じアドレスへ両方送ると競合する。既定では BeatToggle のみ有効にする。
 fn default_compatibility() -> CompatibilityMap {
-    let entries: [(&str, &[&str]); 18] = [
+    let entries: [(&str, &[&str]); 14] = [
         (
             "connected",
             &["/avatar/parameters/VRCOSC/Heartrate/Connected"],
@@ -79,10 +79,6 @@ fn default_compatibility() -> CompatibilityMap {
         ("rrTwitchUp", &[]),
         ("rrTwitchDown", &[]),
         ("activity", &[]),
-        ("legacyEnabled", &[]),
-        ("legacyUnits", &[]),
-        ("legacyTens", &[]),
-        ("legacyHundreds", &[]),
     ];
 
     entries
@@ -220,13 +216,6 @@ compatibility {
   rrTwitchUp   = []
   rrTwitchDown = []
   activity     = []
-
-  // 旧形式の桁パラメータ。VRCOSC のアドレスは
-  // /avatar/parameters/VRCOSC/Heartrate/{Enabled,Units,Tens,Hundreds} です。
-  legacyEnabled   = []
-  legacyUnits     = []
-  legacyTens      = []
-  legacyHundreds  = []
 }
 "#;
 

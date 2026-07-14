@@ -15,19 +15,8 @@ Kodou は**既定でこのアドレスへ送信する**ため、VRCOSC 向けア
 | `Normalised` | `hrNormalised` | はい |
 | `Average` | `hrAverage` | はい |
 | `Beat` | `beatToggle` | はい |
-| `Enabled` / `Units` / `Tens` / `Hundreds` | `legacyEnabled` / `legacyUnits` / `legacyTens` / `legacyHundreds` | いいえ |
 
-旧形式の桁パラメータ（`Units` / `Tens` / `Hundreds`）は既定では送信しません。
-使う場合は `config.conf` の `compatibility` セクションにアドレスを書いてください。
-
-```text
-compatibility {
-  legacyEnabled  = ["/avatar/parameters/VRCOSC/Heartrate/Enabled"]
-  legacyUnits    = ["/avatar/parameters/VRCOSC/Heartrate/Units"]
-  legacyTens     = ["/avatar/parameters/VRCOSC/Heartrate/Tens"]
-  legacyHundreds = ["/avatar/parameters/VRCOSC/Heartrate/Hundreds"]
-}
-```
+VRCOSC の旧形式パラメータ（`Enabled` / `Units` / `Tens` / `Hundreds`。BPM を3桁に分解して送るもの）には対応していません。
 
 ## 他のアドレス体系へ合わせる
 

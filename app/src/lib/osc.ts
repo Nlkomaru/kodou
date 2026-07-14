@@ -16,11 +16,7 @@ export type OscParamKey =
   | "rrInterval"
   | "rrTwitchUp"
   | "rrTwitchDown"
-  | "activity"
-  | "legacyEnabled"
-  | "legacyUnits"
-  | "legacyTens"
-  | "legacyHundreds";
+  | "activity";
 
 export type OscParamMeta = {
   key: OscParamKey;
@@ -46,10 +42,6 @@ export const OSC_PARAM_META: OscParamMeta[] = [
   { key: "rrTwitchUp", label: "RRTwitchUp", type: "Bool", note: "RR間隔増加検出" },
   { key: "rrTwitchDown", label: "RRTwitchDown", type: "Bool", note: "RR間隔減少検出" },
   { key: "activity", label: "Activity", type: "Int", note: "アクティビティ番号" },
-  { key: "legacyEnabled", label: "Legacy/Enabled", type: "Bool", note: "旧形式 接続状態" },
-  { key: "legacyUnits", label: "Legacy/Units", type: "Float", note: "BPM 1の位 /10" },
-  { key: "legacyTens", label: "Legacy/Tens", type: "Float", note: "BPM 10の位 /10" },
-  { key: "legacyHundreds", label: "Legacy/Hundreds", type: "Float", note: "BPM 100の位 /10" },
 ];
 
 // config.conf の compatibility セクション。パラメータ名 → 送信先アドレスの配列。
@@ -109,18 +101,6 @@ function normaliseBpm(bpm: number, bounds: { min: number; max: number }, floatMo
   return floatMode === "signed" ? clampSigned(2 * ratio - 1) : clamp01(ratio);
 }
 
-// BPMを3桁に分解し、各桁を10で割ったfloatにする。
-function legacyDigits(bpm: number) {
-  const hundreds = Math.floor(bpm / 100) % 10;
-  const tens = Math.floor(bpm / 10) % 10;
-  const units = bpm % 10;
-  return {
-    units: units / 10,
-    tens: tens / 10,
-    hundreds: hundreds / 10,
-  };
-}
-
 // アドレスを持たない、パラメータキーと値の組。
 // 「どの値を送るか」と「どのアドレスへ送るか」を分けることで、
 // config.conf のアドレス表を差し替えるだけで送信先を変えられる。
@@ -170,7 +150,6 @@ export function buildStaticOscValues(input: OscSenderInput): OscParamValue[] {
   const rrInterval = reading?.rrIntervalsMs.at(-1) ?? NO_BPM;
   const isConnected = status.state === "connected";
   const isReconnecting = status.state === "reconnecting";
-  const digits = legacyDigits(bpm);
 
   return [
     { key: "connected", arg: { kind: "Bool", value: isConnected } },
@@ -191,10 +170,6 @@ export function buildStaticOscValues(input: OscSenderInput): OscParamValue[] {
     { key: "battery", arg: { kind: "Int", value: battery } },
     { key: "batteryFloat", arg: { kind: "Float", value: clamp01(battery / 100) } },
     { key: "rrInterval", arg: { kind: "Int", value: rrInterval } },
-    { key: "legacyEnabled", arg: { kind: "Bool", value: isConnected } },
-    { key: "legacyUnits", arg: { kind: "Float", value: digits.units } },
-    { key: "legacyTens", arg: { kind: "Float", value: digits.tens } },
-    { key: "legacyHundreds", arg: { kind: "Float", value: digits.hundreds } },
   ];
 }
 
