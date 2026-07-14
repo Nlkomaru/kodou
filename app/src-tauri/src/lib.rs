@@ -175,6 +175,12 @@ async fn start_heart_rate_monitor(
     Ok(())
 }
 
+// 保存済みの記録ファイル一覧。履歴画面が表示のたびに呼ぶ。
+#[tauri::command]
+fn list_recordings(app: AppHandle) -> Result<Vec<recorder::RecordingFile>, String> {
+    recorder::list_recordings(&app)
+}
+
 #[tauri::command]
 fn stop_heart_rate_monitor(state: State<'_, HeartRateMonitorState>) -> Result<(), String> {
     stop_current_monitor(&state);
@@ -240,6 +246,7 @@ pub fn run() {
             scan_heart_rate_monitors,
             start_heart_rate_monitor,
             stop_heart_rate_monitor,
+            list_recordings,
             osc::configure_osc,
             osc::send_osc,
             config::get_config
