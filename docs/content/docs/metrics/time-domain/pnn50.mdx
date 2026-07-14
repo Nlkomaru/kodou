@@ -3,8 +3,6 @@ title: pNN50
 description: 心拍変動（HRV）の時間領域指標 — pNN50 の定義・計算方法・正常値
 ---
 
-# 📊 pNN50
-
 ## 説明
 
 **pNN50** は、隣接する RR間隔の差が 50 ms を超える割合（%）です。RMSSD と同様に**副交感神経活動**を反映し、両者は高い相関を示します [^1]。
@@ -28,5 +26,9 @@ pNN50 = (隣接 RR 差が 50ms を超えた回数 / (N - 1)) × 100 (%)
 |--------|---------------------|
 | 成人（若年） | 20 〜 40 % |
 | 成人（中高年） | 10 〜 30 % |
+
+## Kodou での対応
+
+未実装です。RR間隔の履歴は保持しているため、算出自体は可能です。
 
 [^1]: Shaffer, F., & Ginsberg, J. P. "An Overview of Heart Rate Variability Metrics and Norms." *Frontiers in Public Health*, 2017; 5: 258. [DOI: 10.3389/fpubh.2017.00258](https://doi.org/10.3389/fpubh.2017.00258)

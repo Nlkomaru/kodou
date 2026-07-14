@@ -3,8 +3,6 @@ title: SDNN
 description: 心拍変動（HRV）の時間領域指標 — SDNN（Standard Deviation of NN intervals）の定義・計算方法・正常値
 ---
 
-# 📊 SDNN（Standard Deviation of NN intervals）
-
 ## 説明
 
 **SDNN** は、すべての正常な RR間隔（NN間隔：Normal-to-Normal intervals）の標準偏差です。HRV の全体的な大きさを表す最も基本的な指標です [^1]。
@@ -28,5 +26,9 @@ SDNN = sqrt( Σ(RRᵢ - RR̄)² / (N - 1) )
 |----------|---------|
 | 5分間（安静時） | 30 〜 100 ms |
 | 24時間（Holter） | 100 〜 200 ms |
+
+## Kodou での対応
+
+未実装です。Kodou が現在算出しているのは平均・最大・最小 BPM と [RMSSD](/docs/metrics/time-domain/rmssd) です。
 
 [^1]: Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology. "Heart rate variability: standards of measurement, physiological interpretation and clinical use." *Circulation*, 1996; 93(5): 1043–1065. [DOI: 10.1161/01.CIR.93.5.1043](https://doi.org/10.1161/01.CIR.93.5.1043)

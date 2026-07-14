@@ -1,9 +1,10 @@
 ---
 title: 送信される情報
-description: OSC経由でVRChatに送信される情報
+description: OSC 経由で VRChat に送信される Avatar Parameter の一覧
 ---
 
-このページでは、VRChat に送る予定の OSC パラメータを整理します。
+このページでは、VRChat に送信する OSC パラメータを整理します。
+各パラメータの ON/OFF や正規化範囲は [設定](/docs/config) から変更できます。
 
 参考実装として、VRCOSC の [`HeartrateModule.cs`](https://github.com/VolcanicArts/VRCOSC/blob/7e5fa96c981a23e2a8b78ac4501bf2fa4deb223c/VRCOSC.App/SDK/Modules/Heartrate/HeartrateModule.cs) を確認しています。
 VRCOSC では `VRCOSC/Heartrate/...` というパラメータ名で登録されており、VRChat の Avatar Parameter OSC では通常 `/avatar/parameters/VRCOSC/Heartrate/...` へ送信する形になります。

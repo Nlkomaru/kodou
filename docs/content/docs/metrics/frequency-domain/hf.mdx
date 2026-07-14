@@ -3,8 +3,6 @@ title: HF（High Frequency）
 description: 心拍変動（HRV）の周波数領域指標 — HF（High Frequency）の定義・計算方法・正常値
 ---
 
-# 📈 HF（High Frequency）
-
 ## 説明
 
 **HF** は 0.15〜0.40 Hz の高周波成分のパワーです。呼吸に伴う心拍変動（RSA: Respiratory Sinus Arrhythmia）を反映します [^1]。
@@ -21,11 +19,19 @@ HF = ∫₀.₁₅^0.40 PSD(f) df
 
 ## 正常値
 
+5分間の安静時計測における目安 [^2]：
+
 | 状態 | HF (ms²) |
 |------|---------|
 | 安静時（成人） | 200 〜 1000 |
 | 副交感神経優位時 | 上昇 |
 | ストレス時 | 低下 |
+
+HF も LF と同様に個人差が大きいため、絶対値ではなく自分の平常時からの増減で見るのが実用的です。
+
+## Kodou での対応
+
+未実装です。HF を使った状態判定の考え方は [自律神経状態の判定](/docs/metrics/stress-state) を参照してください。
 
 [^1]: Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology. "Heart rate variability: standards of measurement, physiological interpretation and clinical use." *Circulation*, 1996; 93(5): 1043–1065. [DOI: 10.1161/01.CIR.93.5.1043](https://doi.org/10.1161/01.CIR.93.5.1043)
 

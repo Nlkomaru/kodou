@@ -1,9 +1,7 @@
 ---
-title: Implementation Plan
-description: Bluetooth HR acquisition implementation plan
+title: Bluetooth 心拍取得の実装
+description: BLE Heart Rate Service からの心拍取得と、フロントエンドへの受け渡し
 ---
-
-# Bluetooth HR取得の実装計画
 
 `iron-heart` の方針を参考に、BLE標準の Heart Rate Service を Tauri の Rust 側で扱います。
 WebView から Web Bluetooth を直接使うのではなく、Rust 側でOSのBluetooth adapterに接続し、

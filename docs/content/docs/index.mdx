@@ -1,16 +1,35 @@
 ---
 title: はじめに
-description: このプロジェクトの目的と概要
+description: Kodou の目的と概要
 ---
 
-# Kodou
+Kodou は、Bluetooth の心拍センサー（HRM）から心拍データを取得し、OSC 経由で VRChat のアバターへ送るデスクトップアプリケーションです。
 
-このアプリケーションは、Bluetooth Heart Rate Monitor (HRM) デバイスからの心拍数データを取得し、
-VRChatにOSC経由で送信することを目的としています。
+心拍数をアバターに表示するだけでなく、心拍変動（HRV）から自分の状態を推定してアバターの演出に使うことを目指しています。
 
-## Features
+## できること
 
-- [x] Bluetooth HRMデバイスからの心拍数データ取得
-- [ ] VRChatへのOSC送信
-- [ ] データの可視化と分析
-- [ ] さまざまな指標への対応（例：平均心拍数、最大心拍数、心拍変動など）
+- [x] Bluetooth HRM デバイスの検出と接続（BLE Heart Rate Service）
+- [x] 心拍数・RR間隔・バッテリー残量の取得
+- [x] 接続断からの自動再接続（指数バックオフ）
+- [x] VRChat への OSC 送信（`/avatar/parameters/Kodou/...`）
+- [x] VRCOSC / iron-heart 互換モード
+- [x] 送信パラメータの個別 ON/OFF
+- [x] 統計表示（平均・最大・最小 BPM、RMSSD）
+- [ ] 周波数領域の HRV 解析（LF / HF）
+- [ ] 自律神経状態の判定結果を OSC 送信
+
+## ドキュメントの構成
+
+| セクション | 内容 |
+| --- | --- |
+| [設定](/docs/config) | アプリの設定項目と既定値、他ツールとの互換モード |
+| [指標](/docs/metrics) | 心拍数・RR間隔・HRV 各指標の定義と計算方法 |
+| [OSC](/docs/osc) | VRChat へ送信される Avatar Parameter の一覧 |
+| [実装](/docs/implementation) | Bluetooth 取得部の実装方針 |
+
+心拍から「落ち着いている / 普通 / ストレス・興奮」をどう分けるかについては、[自律神経状態の判定](/docs/metrics/stress-state) にまとめています。
+
+:::warn
+Kodou は医療機器ではありません。取得・表示される値は VRChat での演出を目的としたものであり、健康状態の診断には使えません。
+:::

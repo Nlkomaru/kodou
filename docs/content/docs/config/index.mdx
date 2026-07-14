@@ -1,0 +1,62 @@
+---
+title: 設定
+description: Kodou の設定項目と既定値の一覧
+---
+
+Kodou の設定はアプリ内の UI から変更します。設定ファイルを直接編集する必要はありません。
+ここでは各設定項目が何に影響するかと、その既定値をまとめます。
+
+## OSC 送信先
+
+| 項目 | 既定値 | 説明 |
+| --- | --- | --- |
+| 送信先アドレス | `127.0.0.1:9000` | VRChat が OSC を待ち受けるアドレスとポート。同一 PC で VRChat を動かす場合は既定のままで動作します |
+| OSC 送信の有効化 | 無効 | 有効にすると心拍データの送信を開始します |
+
+VRChat 側で OSC を有効にする必要があります（ラジアルメニュー → Options → OSC → Enabled）。
+
+## 送信パラメータの選択
+
+送信する Avatar Parameter はチェックボックスで個別に切り替えられます。
+アバターが持っていないパラメータを送っても害はありませんが、不要なものを切っておくと送信量を減らせます。
+
+既定で有効なもの：`Connected` / `Reconnecting` / `HR` / `HRFloat` / `HRNormalised` / `HRAverage` / `Battery` / `BatteryFloat` / `BeatToggle` / `BeatPulse` / `RRInterval`
+
+既定で無効なもの：`RRTwitchUp` / `RRTwitchDown` / `Activity` / `Legacy/*`（旧形式の桁パラメータ）
+
+各パラメータのアドレスと型は [送信される情報](/docs/osc) を参照してください。
+
+## 心拍値の変換
+
+| 項目 | 既定値 | 説明 |
+| --- | --- | --- |
+| BPM 下限 / 上限 | `0` / `240` | `HRNormalised` と `HRFloat` を計算するときの正規化範囲。VRCOSC の既定値に合わせています |
+| HRFloat の範囲 | `-1.0` 〜 `1.0` | `0.0` 〜 `1.0` にも切り替えられます。既定は iron-heart 準拠の符号付き |
+| 平均窓 | `10000` ms | `HRAverage` を計算する対象期間。直近10秒の平均 |
+
+自分の安静時心拍に合わせて下限・上限を調整すると、`HRNormalised` の変化がアバター側で見やすくなります。
+
+## 拍の検出
+
+| 項目 | 既定値 | 説明 |
+| --- | --- | --- |
+| BeatPulse の長さ | `120` ms | `BeatPulse` を `true` にしてから `false` へ戻すまでの時間。次の拍に被らないよう、拍周期の1/4と120msの小さい方が使われます |
+| RR Twitch しきい値 | `50` ms | 連続する [RR間隔](/docs/metrics/rr-interval) の差がこの値を超えたときに `RRTwitchUp` / `RRTwitchDown` を発火させます |
+
+## 互換モード
+
+他ツール向けに作られたアバターをそのまま使いたい場合に有効化します。
+Kodou 標準の `/avatar/parameters/Kodou/...` に加えて、互換先のアドレスにも同じ値を複製送信します。
+
+| 項目 | 既定値 | 説明 |
+| --- | --- | --- |
+| iron-heart 互換 | 無効 | `/avatar/parameters/HR` などの短い名前へも送信します |
+| VRCOSC 互換 | 無効 | `/avatar/parameters/VRCOSC/Heartrate/...` へも送信します |
+
+詳細は [互換性](/docs/config/compatible/osc) を参照してください。
+
+## 再接続
+
+デバイスとの接続が切れた場合、Kodou は自動で再接続を試みます。
+再接続の間隔は指数バックオフ（1秒から始まり最大30秒）で、この挙動に設定項目はありません。
+再接続中は `Reconnecting` が `true` になります。

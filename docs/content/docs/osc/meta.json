@@ -1,6 +1,6 @@
 {
     "title": "OSC",
-    "icon": "Code",
+    "icon": "Radio",
     "root": true,
     "pages": [
         "index"
