@@ -180,6 +180,9 @@ jobs:
       - name: Comment preview links and test summary
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # comment ジョブは checkout しないため .git が無い。gh がリポジトリを
+          # git から推測できず失敗するので、GH_REPO で対象リポジトリを明示する。
+          GH_REPO: ${{ github.repository }}
           COMMIT_SHORT_SHA: ${{ steps.vars.outputs.commit_sha }}
           # rust-test の件数。ジョブがスキップ等で値を持たない場合に備えて既定値を入れる。
           TEST_TOTAL: ${{ needs.rust-test.outputs.total || '—' }}
