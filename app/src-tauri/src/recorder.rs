@@ -37,8 +37,11 @@ const IN_PROGRESS_EXT: &str = "arrow";
 const FINAL_EXT: &str = "parquet";
 
 pub struct HeartRateRecorder {
-    // close()後はNoneにして、二重closeや確定後の追記を防ぐ。
+    // 記録ファイルは実データが来るまで作らない(遅延生成)。writerがNoneなのは
+    // 「まだ1行も書いていない(未生成)」か「close済み」のどちらか。両者はclosedで見分ける。
     writer: Option<StreamWriter<File>>,
+    // close済みフラグ。close後の追記や、データ無しセッションでの空ファイル生成を防ぐ。
+    closed: bool,
     schema: Arc<Schema>,
     timestamp_ms: Int64Builder,
     device_id: StringBuilder,
@@ -62,9 +65,8 @@ impl HeartRateRecorder {
         // ファイル名の日付は、利用者が探しやすいようUTCではなくローカル時刻で決める。
         let now = Local::now();
         let month_dir = recordings_dir(app)?.join(now.format("%Y-%m").to_string());
-        fs::create_dir_all(&month_dir)
-            .map_err(|error| format!("保存先フォルダを作成できませんでした: {error}"))?;
-
+        // ここではフォルダを作らない。実データが来て初めて ensure_writer で作る。
+        // まだフォルダが無ければ file_names_in は空を返すので、連番は1から始まる。
         let date = now.format("%Y-%m-%d").to_string();
         let final_path = month_dir.join(next_recording_name(&file_names_in(&month_dir), &date));
         Self::with_path(final_path)
@@ -88,16 +90,13 @@ impl HeartRateRecorder {
         ]));
 
         // 記録中は同じstemの .arrow へ書き、closeで .parquet へ変換する。
+        // ファイル本体はここでは作らず、最初の実データを書く flush 時に ensure_writer で作る。
+        // これにより、デバイス未接続・データ無しのセッションでは空ファイルが一切残らない。
         let in_progress_path = final_path.with_extension(IN_PROGRESS_EXT);
-        let file = File::create(&in_progress_path)
-            .map_err(|error| format!("保存ファイルを作成できませんでした: {error}"))?;
-        // 追記耐性のあるstream形式で書く。file形式(FileWriter)は末尾にfooterを持ち
-        // close時にしか読めなくなるため、ここでは必ずStreamWriterを使う。
-        let writer = StreamWriter::try_new(file, &schema)
-            .map_err(|error| format!("記録ライターを初期化できませんでした: {error}"))?;
 
         Ok(Self {
-            writer: Some(writer),
+            writer: None,
+            closed: false,
             schema,
             timestamp_ms: Int64Builder::new(),
             device_id: StringBuilder::new(),
@@ -112,9 +111,30 @@ impl HeartRateRecorder {
         })
     }
 
+    // 実データを書く直前に、記録ファイル(.arrow)を遅延生成する。既に生成済みなら何もしない。
+    // 親フォルダもここで作ることで、データ無しセッションはフォルダすら残さない。
+    fn ensure_writer(&mut self) -> Result<(), String> {
+        if self.writer.is_some() {
+            return Ok(());
+        }
+        if let Some(parent) = self.path.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("保存先フォルダを作成できませんでした: {error}"))?;
+        }
+        let file = File::create(&self.path)
+            .map_err(|error| format!("保存ファイルを作成できませんでした: {error}"))?;
+        // 追記耐性のあるstream形式で書く。file形式(FileWriter)は末尾にfooterを持ち
+        // close時にしか読めなくなるため、ここでは必ずStreamWriterを使う。
+        let writer = StreamWriter::try_new(file, &self.schema)
+            .map_err(|error| format!("記録ライターを初期化できませんでした: {error}"))?;
+        self.writer = Some(writer);
+        Ok(())
+    }
+
     // BLE通知1件を1行としてバッファに積む。一定件数たまったら行グループとして書き出す。
     pub fn record(&mut self, timestamp_ms: i64, reading: &HeartRateReading) -> Result<(), String> {
-        if self.writer.is_none() {
+        // close後は追記しない(データ無しセッションでの空ファイル生成や、確定後の追記を防ぐ)。
+        if self.closed {
             return Ok(());
         }
 
@@ -143,9 +163,12 @@ impl HeartRateRecorder {
         if self.buffered_rows == 0 {
             return Ok(());
         }
-        let Some(writer) = self.writer.as_mut() else {
-            return Ok(());
-        };
+        // 実データを書くこの瞬間に、初めて .arrow を生成する(遅延生成)。
+        self.ensure_writer()?;
+        let writer = self
+            .writer
+            .as_mut()
+            .expect("ensure_writer がwriterを用意しているはず");
 
         let batch = RecordBatch::try_new(
             self.schema.clone(),
@@ -178,7 +201,16 @@ impl HeartRateRecorder {
     // 残りをflushしてEOSを書き、.arrowを標準ツールで読めるParquetへ変換して確定する。
     // 既にclose済みなら何もしない(二重呼び出しは無害)。
     pub fn close(&mut self) -> Result<(), String> {
+        // 二重close防止。1度確定したら以降は何もしない(冪等)。
+        if self.closed {
+            return Ok(());
+        }
+        // 残りのバッファを先に書き出す(ここで初めてファイルが生成されることもある)。
+        // closedを立てる前に呼ぶことで、<64行で停止したセッションのデータも取りこぼさない。
         self.flush()?;
+        self.closed = true;
+        // 1行も記録していないセッションは writer が None のまま。ファイルは作られていないので
+        // 変換も削除も不要でそのまま返す。これがデバイス未接続時に空ファイルを残さない要。
         let Some(writer) = self.writer.take() else {
             return Ok(());
         };
@@ -206,6 +238,11 @@ fn convert_ipc_to_parquet(ipc_path: &Path, parquet_path: &Path) -> Result<(), St
     // 変換先のスキーマは記録時のものをそのまま引き継ぐ。
     let schema = reader.schema();
     let batches = read_ipc_batches_tolerant(reader);
+    // 完全なバッチが1つも無い(記録開始直後に切れた等)場合は、空のParquetを作らない。
+    // close経由では flush が必ず1バッチ以上書いた後に来るので発火しない。復旧時のみの保険。
+    if batches.is_empty() {
+        return Ok(());
+    }
 
     let out = File::create(parquet_path)
         .map_err(|error| format!("保存ファイルを作成できませんでした: {error}"))?;
@@ -686,6 +723,25 @@ mod tests {
         assert_eq!(summary.mean_bpm, 70.0);
 
         let _ = fs::remove_file(&final_path);
+    }
+
+    // デバイス未接続・データ無しのセッションは、ファイルもフォルダも一切作らないことを確認する。
+    // これが今回の修正の要。起動時の自動再接続が空振りしても、空の .arrow / .parquet を残さない。
+    #[test]
+    fn empty_session_creates_no_files() {
+        let dir = temp_dir().join(format!("kodou-empty-test-{}", now_ms()));
+        let final_path = dir.join("2026-07-16_1.parquet");
+        let arrow_path = final_path.with_extension(IN_PROGRESS_EXT);
+
+        let mut recorder =
+            HeartRateRecorder::with_path(final_path.clone()).expect("create recorder");
+        // 一度も record せずに close(接続できず1件も受信しなかった状況を模す)。
+        recorder.close().unwrap();
+
+        // .arrow も .parquet も、親フォルダすら作られない。
+        assert!(!arrow_path.exists());
+        assert!(!final_path.exists());
+        assert!(!dir.exists());
     }
 
     // クラッシュ(closeなし)を模し、EOS未書き込みの .arrow でも完全なバッチが復旧できることを確認する。
