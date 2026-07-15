@@ -30,6 +30,9 @@ uuid = "1"
 # 心拍データの保存はピュアRustのParquet/Arrowで行い、HDF5のようなネイティブCライブラリ依存を避ける。
 arrow-array = "54"
 arrow-schema = "54"
+# 記録中は追記耐性のあるArrow IPC stream形式で書き、正常終了時にParquetへ変換する。
+# stream形式はfooterを末尾に持たないため、クラッシュで切れても完全なバッチは読み戻せる。
+arrow-ipc = "54"
 parquet = { version = "54", default-features = false, features = ["arrow", "snap"] }
 # OSC送信先などユーザーが編集する設定をHOCON形式で読み込む。
 hocon-parser = { version = "1", features = ["serde"] }

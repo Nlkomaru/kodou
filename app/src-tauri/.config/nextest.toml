@@ -1,0 +1,5 @@
+# cargo-nextest の設定。CI ではテスト結果を JUnit XML として書き出し、
+# GitHub Actions 側で結果レポート（GitHub Check・PR コメントのサマリ）に使う。
+[profile.ci.junit]
+# 出力先は target/nextest/ci/junit.xml。CI のレポートアクションがこのパスを読む。
+path = "junit.xml"

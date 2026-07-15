@@ -152,7 +152,7 @@ async fn start_heart_rate_monitor(
             tokio::time::sleep(reconnect_delay).await;
         }
 
-        // ユーザー停止でループを抜けたら、footerを書いてParquetを読める状態で確定する。
+        // ユーザー停止でループを抜けたら、.arrowをParquetへ変換して読める状態で確定する。
         // アプリ終了経由で既にcloseされていてもclose()は冪等なので二重呼び出しは無害。
         if let Some(recorder) = recorder {
             if let Ok(mut recorder) = recorder.lock() {
@@ -196,7 +196,7 @@ fn stop_current_monitor(state: &State<'_, HeartRateMonitorState>) {
     }
 }
 
-// アプリ終了時に、記録中のParquetファイルを同期的に確定(footer書き込み)する。
+// アプリ終了時に、記録中の .arrow を同期的にParquetへ変換して確定する。
 // 終了経路ではspawn済みタスクが動く保証がないため、共有状態のrecorderをここで直接closeする。
 fn finalize_recording(app: &AppHandle) {
     let Some(state) = app.try_state::<HeartRateMonitorState>() else {
@@ -256,6 +256,11 @@ pub fn run() {
             // 送信先の反映はフロントエンドがget_config_osc_targetsで読み出し、
             // GUIの送信先と統合してconfigure_oscを呼ぶ経路に一本化している。
             config::ensure_config_template(app.handle());
+
+            // 前回のクラッシュ・電源断・強制終了で確定しきれなかった記録(.arrow)を、
+            // 記録開始より前にParquetへ復旧しておく。記録中の .arrow を誤変換しないため、
+            // 必ずここ(セットアップ時)で行う。
+            recorder::recover_interrupted_recordings(app.handle());
 
             // システムトレイに常駐させ、ウィンドウを閉じてもバックグラウンドで監視・記録・OSCを続けられるようにする。
             let show_item = MenuItem::with_id(app, "show", "表示", true, None::<&str>)?;
