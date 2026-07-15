@@ -146,7 +146,7 @@ export function HrChartPanel({
   const { areaPath, baselineY, gridValues, path, timeTicks, xFor, yFor } = chartGeometry(points, smooth);
 
   return (
-    <div className="flex min-w-0 flex-col rounded-[14px] bg-background p-4">
+    <div className="flex min-w-0 flex-col rounded-xl bg-background p-4">
       <Button
         type="button"
         variant="ghost"

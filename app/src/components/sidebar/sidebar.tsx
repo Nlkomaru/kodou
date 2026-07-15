@@ -59,7 +59,7 @@ export function Sidebar({
           <img
             src={kodouLogo}
             alt="Kodou"
-            className="size-12 rounded-[17px]"
+            className="size-12 rounded-md"
           />
           <div className="flex flex-col">
             <span className="text-2xl font-bold leading-8 text-foreground">Kodou</span>
@@ -71,7 +71,7 @@ export function Sidebar({
         <div className="p-2">
           <div
             className={
-              "flex h-10 w-full items-center gap-3 rounded-[10px] px-3 py-2 " +
+              "flex h-10 w-full items-center gap-3 rounded-lg px-3 py-2 " +
               (connected ? "bg-status-connected-bg" : "bg-secondary")
             }
           >
@@ -106,7 +106,7 @@ export function Sidebar({
                 onClick={() => onNavigate?.(item.id)}
                 aria-current={isActive ? "page" : undefined}
                 className={
-                  "h-auto w-full justify-start gap-3 rounded-[10px] px-3 py-2.5 text-base font-medium " +
+                  "h-auto w-full justify-start gap-3 px-3 py-2.5 text-base font-medium " +
                   (isActive
                     ? "bg-secondary text-foreground"
                     : "text-secondary-foreground hover:bg-secondary/50")
