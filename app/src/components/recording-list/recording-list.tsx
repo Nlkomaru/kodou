@@ -22,7 +22,7 @@ export interface RecordingListProps {
 export function RecordingList({ recordings, activePath, onReveal }: RecordingListProps) {
   if (recordings.length === 0) {
     return (
-      <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-[14px] bg-muted/40 p-8 text-center">
+      <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl bg-muted/40 p-8 text-center">
         <ChartColumn className="size-8 text-muted-foreground" aria-hidden="true" />
         <p className="text-sm font-medium text-secondary-foreground">まだ記録がありません。</p>
         <p className="text-xs text-muted-foreground">
@@ -65,7 +65,7 @@ function RecordingRow({ recording, isRecording, onReveal }: RecordingRowProps) {
   const { summary } = recording;
 
   return (
-    <li className="flex items-center gap-3 rounded-[14px] bg-muted/40 px-4 py-3">
+    <li className="flex items-center gap-3 rounded-xl bg-muted/40 px-4 py-3">
       <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="truncate text-sm font-medium text-secondary-foreground">
