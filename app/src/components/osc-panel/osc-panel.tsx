@@ -1,7 +1,9 @@
 import { useAtom, useAtomValue } from "jotai";
+import { Info, type LucideIcon, Radio, Send } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { OSC_PARAM_META } from "@/lib/osc";
 import { activeOscParamsAtom, oscAddressesAtom, oscEnabledAtom, oscTargetsAtom } from "@/state/osc";
@@ -25,17 +27,27 @@ export function OscPanel() {
             <CardTitle className="text-base">OSC送信</CardTitle>
             <CardDescription className="mt-1">VRChatのAvatar Parameter OSCへ心拍データを送ります</CardDescription>
           </div>
-          <Label className="text-sm font-bold">
+          {/* 送信ON/OFFはこのパネル唯一の操作。状態がひと目で分かるよう、
+              有効時はプライマリ色のピルで強調する。 */}
+          <Label
+            className={
+              "flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-bold transition-colors " +
+              (enabled
+                ? "border-primary/30 bg-primary/10 text-foreground"
+                : "border-border bg-muted/40 text-muted-foreground")
+            }
+          >
             <Switch checked={enabled} onCheckedChange={(value) => setEnabled(value === true)} />
             送信を有効化
           </Label>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-5">
-        <div className="grid gap-1">
-          <Label className="text-xs font-bold text-muted-foreground">送信先</Label>
+      <CardContent className="flex flex-col gap-4">
+        {/* 送信先 */}
+        <section className="grid gap-2">
+          <SectionHeading icon={Send} label="送信先" />
           {targets.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {targets.map((target) => (
                 <Badge key={target} variant="secondary" className="font-mono text-xs">
                   {target}
@@ -45,19 +57,27 @@ export function OscPanel() {
           ) : (
             <p className="text-xs text-muted-foreground">送信先が設定されていません</p>
           )}
-        </div>
+        </section>
 
-        <div className="grid gap-2">
-          <Label className="text-xs font-bold text-muted-foreground">
-            送信パラメータ ({activeParams.length}件)
-          </Label>
+        <Separator />
+
+        {/* 送信パラメータ */}
+        <section className="grid gap-2.5">
+          <SectionHeading icon={Radio} label="送信パラメータ" count={activeParams.length} />
           {activeParams.length > 0 ? (
-            <div className="grid gap-2 sm:grid-cols-2">
+            // 角丸が大きいぶん、詰まって見えないよう内側の余白とボックス間隔を広めに取る。
+            <div className="grid gap-2.5 sm:grid-cols-2">
               {activeParams.map((key) => (
-                <div key={key} className="flex flex-col gap-1 rounded-lg bg-muted/20 p-2 ring-1 ring-border">
+                <div
+                  key={key}
+                  className="flex flex-col gap-1.5 rounded-lg bg-muted/30 px-3.5 py-3 ring-1 ring-border/70"
+                >
                   <span className="text-xs font-bold">{LABEL_BY_KEY.get(key) ?? key}</span>
                   {(addresses[key] ?? []).map((address) => (
-                    <code key={address} className="break-all text-[11px] text-muted-foreground">
+                    <code
+                      key={address}
+                      className="break-all text-[11px] leading-relaxed text-muted-foreground"
+                    >
                       {address}
                     </code>
                   ))}
@@ -67,13 +87,32 @@ export function OscPanel() {
           ) : (
             <p className="text-xs text-muted-foreground">送信するパラメータが設定されていません</p>
           )}
-        </div>
+        </section>
 
-        <p className="text-xs text-muted-foreground">
-          送信先・送信パラメータ・数値設定は <code>config.conf</code> で変更します。
-          編集したらアプリを再起動してください。
-        </p>
+        {/* 補足: 設定の変更方法。ヒントであることが伝わるよう控えめなボックスにする。 */}
+        <div className="flex items-start gap-2 rounded-lg bg-muted/20 px-3.5 py-2.5 text-xs leading-relaxed text-muted-foreground ring-1 ring-border/60">
+          <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+          <p>
+            送信先・送信パラメータ・数値設定は <code>config.conf</code> で変更します。
+            編集したらアプリを再起動してください。
+          </p>
+        </div>
       </CardContent>
     </Card>
+  );
+}
+
+// 各セクションの見出し。アイコン＋ラベルで統一し、必要なら件数バッジを添える。
+function SectionHeading({ icon: Icon, label, count }: { icon: LucideIcon; label: string; count?: number }) {
+  return (
+    <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+      <Icon className="size-3.5" aria-hidden="true" />
+      {label}
+      {count !== undefined && (
+        <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-semibold">
+          {count}件
+        </Badge>
+      )}
+    </div>
   );
 }
