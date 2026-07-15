@@ -2202,6 +2202,7 @@ name = "kodou"
 version = "0.1.0"
 dependencies = [
  "arrow-array",
+ "arrow-ipc",
  "arrow-schema",
  "btleplug",
  "chrono",
