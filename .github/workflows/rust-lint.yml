@@ -49,10 +49,6 @@ jobs:
 
       - name: Run clippy
         # clippyを警告ではなくエラーとして扱い、すべてのターゲットで検査する。
+        # clippy --all-targets はコンパイルチェックも兼ねるため、別途 cargo check は不要。
         working-directory: app/src-tauri
         run: cargo clippy --all-targets -- -D warnings
-
-      - name: Check compilation
-        # 型エラーや未解決依存などのコンパイルエラーがないか確認する。
-        working-directory: app/src-tauri
-        run: cargo check --all-targets

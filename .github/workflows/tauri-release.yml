@@ -46,7 +46,7 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
-            args: --target universal-apple-darwin
+            args: --target aarch64-apple-darwin
           - platform: ubuntu-22.04
             args: ""
           - platform: windows-latest
@@ -74,9 +74,9 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@1.88.0
         with:
-          # macOS の universal-apple-darwin は aarch64 と x86_64 の両方を必要とする。
-          # macos-latest のホストは aarch64 なので、不足する x86_64 を追加で入れる。
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin x86_64-apple-darwin' || '' }}
+          # macOS は Apple Silicon(aarch64)限定でビルドする。macos-latest のホストは
+          # aarch64 なので追加ターゲットは不要（Intel 対応が要るなら universal に戻す）。
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -86,6 +86,14 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Cargo 由来のキャッシュ。タグ起動のためコンパイル済み依存はヒットしにくいが、
+      # registry のダウンロード短縮と同一タグ再実行・手動再ビルドで効く。
+      # プラットフォームごとにキーが分かれるよう OS 別で保存する。
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
 
       - name: Preserve release body
         # release-drafter が書いた changelog を tauri-action で上書きしないよう、
