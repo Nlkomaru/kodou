@@ -249,7 +249,8 @@ pub fn run() {
             list_recordings,
             osc::configure_osc,
             osc::send_osc,
-            config::get_config
+            config::get_config,
+            config::save_config
         ])
         .setup(|app| {
             // config.conf が未作成ならテンプレートを生成しておく。

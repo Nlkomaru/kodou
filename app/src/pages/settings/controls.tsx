@@ -8,9 +8,7 @@ import type { HeartRateDevice } from "@/lib/heart-rate-types";
 import {
   clearReadingAtom,
   errorAtom,
-  isConnectedAtom,
   isScanningAtom,
-  isStartingAtom,
   selectedDeviceAtom,
   selectedDeviceIdAtom,
   setDevicesAtom,
@@ -20,15 +18,12 @@ import {
 export function Controls() {
   const selectedDeviceId = useAtomValue(selectedDeviceIdAtom);
   const selectedDevice = useAtomValue(selectedDeviceAtom);
-  const isScanning = useAtomValue(isScanningAtom);
-  const isStarting = useAtomValue(isStartingAtom);
-  const isConnected = useAtomValue(isConnectedAtom);
+  const status = useAtomValue(statusAtom);
   const setDevices = useSetAtom(setDevicesAtom);
   const setError = useSetAtom(errorAtom);
   const setIsScanning = useSetAtom(isScanningAtom);
-  const setIsStarting = useSetAtom(isStartingAtom);
-  const clearReading = useSetAtom(clearReadingAtom);
   const setStatus = useSetAtom(statusAtom);
+  const clearReading = useSetAtom(clearReadingAtom);
 
   async function scanDevices() {
     if (!isTauriRuntime()) {
@@ -77,7 +72,6 @@ export function Controls() {
     }
 
     setError("");
-    setIsStarting(true);
     clearReading();
 
     try {
@@ -90,8 +84,6 @@ export function Controls() {
       }
     } catch (startError) {
       setError(String(startError));
-    } finally {
-      setIsStarting(false);
     }
   }
 
@@ -116,13 +108,13 @@ export function Controls() {
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Button className="h-10 font-bold" type="button" onClick={scanDevices} disabled={isScanning || isStarting}>
+      <Button className="h-10 font-bold" type="button" onClick={scanDevices} disabled={status.state === "scanning" || status.state === "connecting"}>
         <Radio aria-hidden="true" />
-        {isScanning ? "検索中..." : "スキャン"}
+        {status.state === "scanning" ? "検索中..." : "スキャン"}
       </Button>
-      <Button className="h-10 font-bold" type="button" onClick={startMonitor} disabled={!selectedDeviceId || isStarting || isScanning}>
+      <Button className="h-10 font-bold" type="button" onClick={startMonitor} disabled={!selectedDeviceId || status.state === "connecting" || status.state === "scanning"}>
         <Bluetooth aria-hidden="true" />
-        {isStarting ? "接続中..." : isConnected ? "再接続" : "接続"}
+        {status.state === "connecting" ? "接続中..." : status.state === "connected" ? "再接続" : "接続"}
       </Button>
       <Button className="h-10 font-bold" type="button" variant="secondary" onClick={stopMonitor} disabled={!selectedDeviceId}>
         <Square aria-hidden="true" />

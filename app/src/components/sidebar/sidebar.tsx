@@ -19,8 +19,8 @@ export interface SidebarNavItem {
 }
 
 export interface SidebarProps {
-  /** Connection status of the heart rate sensor. */
-  connected: boolean;
+  /** Connection status label text (日本語). */
+  status: string;
   /** Navigation items. Defaults to the four standard views. */
   items?: SidebarNavItem[];
   /** Id of the currently active navigation item. */
@@ -43,7 +43,7 @@ const DEFAULT_ITEMS: SidebarNavItem[] = [
 ];
 
 export function Sidebar({
-  connected,
+  status,
   items = DEFAULT_ITEMS,
   activeItem,
   onNavigate,
@@ -69,28 +69,30 @@ export function Sidebar({
 
         {/* Status */}
         <div className="p-2">
-          <div
-            className={
-              "flex h-10 w-full items-center gap-3 rounded-lg px-3 py-2 " +
-              (connected ? "bg-status-connected-bg" : "bg-secondary")
-            }
-          >
-            <span
-              className={
-                "size-2 rounded-full " +
-                (connected ? "bg-status-connected-dot opacity-[0.68]" : "bg-muted-foreground opacity-[0.68]")
-              }
-              aria-hidden="true"
-            />
-            <span
-              className={
-                "text-sm font-medium " +
-                (connected ? "text-status-connected-fg" : "text-secondary-foreground")
-              }
-            >
-              {connected ? "接続済み" : "未接続"}
-            </span>
-          </div>
+          {(() => {
+            const isConnected = status === "接続済み";
+            const isTransitional = status.includes("中");
+            const bgClass = isConnected ? "bg-status-connected-bg" : "bg-secondary";
+            const dotClass = isConnected
+              ? "bg-status-connected-dot opacity-[0.68]"
+              : isTransitional
+                ? "bg-amber-500 opacity-[0.68] animate-pulse"
+                : "bg-muted-foreground opacity-[0.68]";
+            const fgClass = isConnected ? "text-status-connected-fg" : "text-secondary-foreground";
+            return (
+              <div
+                className={`flex h-10 w-full items-center gap-3 rounded-lg px-3 py-2 ${bgClass}`}
+              >
+                <span
+                  className={`size-2 rounded-full ${dotClass}`}
+                  aria-hidden="true"
+                />
+                <span className={`text-sm font-medium ${fgClass}`}>
+                  {status}
+                </span>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Navigation */}

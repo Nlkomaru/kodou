@@ -39,6 +39,7 @@ VRChat の Avatar Parameter OSC は通常 `127.0.0.1:9000` で待ち受けます
 | --- | --- | --- | --- | --- |
 | `connected` | `/avatar/parameters/Kodou/Connected` | `bool` | 心拍データを受信中なら `true` | VRCOSC へ送信 |
 | `reconnecting` | `/avatar/parameters/Kodou/Reconnecting` | `bool` | 一時切断を隠して再接続扱いにしている間 `true` | Kodou へ送信 |
+| `connecting` | `/avatar/parameters/Kodou/Connecting` | `bool` | BLE 機器への接続を試行中に `true` | Kodou へ送信 |
 | `hr` | `/avatar/parameters/Kodou/HR` | `int` | 現在の心拍数 BPM | VRCOSC へ送信 |
 | `hrFloat` | `/avatar/parameters/Kodou/HRFloat` | `float` | 心拍数を float 化した値。既定は `-1.0` から `1.0`、設定次第で `0.0` から `1.0` | Kodou へ送信 |
 | `hrNormalised` | `/avatar/parameters/Kodou/HRNormalised` | `float` | 下限・上限 BPM から `0.0` から `1.0` に正規化した心拍数 | VRCOSC へ送信 |

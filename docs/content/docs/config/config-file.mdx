@@ -3,8 +3,7 @@ title: 設定ファイル
 description: config.conf で送信先・送信パラメータ・数値設定を指定する
 ---
 
-Kodou の設定は、設定ファイル `config.conf` にまとまっています。
-アプリ側の UI で切り替えられるのは OSC 送信のオン・オフだけで、送信先・送信するパラメータ・数値設定はすべてこのファイルで指定します。
+Kodou の設定は、設定ファイル `config.conf` にまとまっています。OSC 送信のオン・オフ、送信先、数値設定はアプリの UI（OSCパネル）から直接編集でき、変更内容は自動的に `config.conf` へ保存されます。
 
 書式は [HOCON](https://github.com/lightbend/config/blob/main/HOCON.md) です。
 初回起動時にテンプレートが自動生成されるため、通常は生成されたファイルを編集するだけで済みます。
@@ -19,7 +18,7 @@ Kodou の設定は、設定ファイル `config.conf` にまとまっていま�
 | macOS | `~/Library/Application Support/dev.nikomaru.kodou/config.conf` |
 | Linux | `~/.local/share/dev.nikomaru.kodou/config.conf` |
 
-編集した内容は、アプリの起動時に一度だけ読み込まれます。編集したらアプリを再起動してください。
+UI から編集した場合は即座にファイルへ保存され、再起動不要で反映されます。ファイルを直接編集した場合は、アプリの再起動で反映されます。
 
 ## osc セクション
 
@@ -92,6 +91,7 @@ VRCOSC に対応するパラメータが無いものは、Kodou 標準アドレ�
 | `hrAverage` | `/avatar/parameters/VRCOSC/Heartrate/Average` |
 | `beatToggle` | `/avatar/parameters/VRCOSC/Heartrate/Beat` |
 | `reconnecting` | `/avatar/parameters/Kodou/Reconnecting` |
+| `connecting` | `/avatar/parameters/Kodou/Connecting` |
 | `hrFloat` | `/avatar/parameters/Kodou/HRFloat` |
 | `battery` | `/avatar/parameters/Kodou/Battery` |
 | `batteryFloat` | `/avatar/parameters/Kodou/BatteryFloat` |

@@ -5,8 +5,18 @@ import { activeParamKeys, FALLBACK_CONFIG, type AppConfig } from "@/lib/osc";
 // UI/hookからは "@/state/osc" で完結して参照できるようにする。
 export { oscAverageWindowMsAtom } from "@/state/heart-rate";
 
-// 送信のON/OFF。UIに残している唯一の設定で、無効の間は一切送信しない。
-export const oscEnabledAtom = atom(false);
+// 送信のON/OFF。localStorageへ永続化し、再起動後も状態を維持する。
+const OSC_ENABLED_KEY = "kodou-osc-enabled";
+const oscEnabledBaseAtom = atom((() => {
+  try { return localStorage.getItem(OSC_ENABLED_KEY) === "true"; } catch { return false; }
+})());
+export const oscEnabledAtom = atom(
+  (get) => get(oscEnabledBaseAtom),
+  (_get, set, value: boolean) => {
+    set(oscEnabledBaseAtom, value);
+    try { localStorage.setItem(OSC_ENABLED_KEY, String(value)); } catch { /* ignore */ }
+  },
+);
 
 // config.conf から読み込んだ設定一式。起動時にRustの get_config で取得する。
 // 送信先・送信するパラメータ・数値設定はすべてここに入る。
