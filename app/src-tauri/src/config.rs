@@ -248,13 +248,13 @@ pub fn save_config(app: AppHandle, config: AppConfig) -> Result<(), String> {
     // 親ディレクトリが存在しない場合は作成
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)
-            .map_err(|e| format!("設定ディレクトリを作成できません: {}", e))?;
+            .map_err(|e| format!("設定ディレクトリを作成できません: {e}"))?;
     }
 
     let json = serde_json::to_string_pretty(&config)
-        .map_err(|e| format!("設定のシリアライズに失敗しました: {}", e))?;
+        .map_err(|e| format!("設定のシリアライズに失敗しました: {e}"))?;
 
-    std::fs::write(&path, json).map_err(|e| format!("設定ファイルを書き込めません: {}", e))?;
+    std::fs::write(&path, json).map_err(|e| format!("設定ファイルを書き込めません: {e}"))?;
 
     Ok(())
 }
