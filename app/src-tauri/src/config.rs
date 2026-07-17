@@ -61,10 +61,7 @@ fn default_compatibility() -> CompatibilityMap {
             &["/avatar/parameters/VRCOSC/Heartrate/Connected"],
         ),
         ("reconnecting", &["/avatar/parameters/Kodou/Reconnecting"]),
-        (
-            "connecting",
-            &["/avatar/parameters/Kodou/Connecting"],
-        ),
+        ("connecting", &["/avatar/parameters/Kodou/Connecting"]),
         ("hr", &["/avatar/parameters/VRCOSC/Heartrate/Value"]),
         ("hrFloat", &["/avatar/parameters/Kodou/HRFloat"]),
         (
@@ -257,8 +254,7 @@ pub fn save_config(app: AppHandle, config: AppConfig) -> Result<(), String> {
     let json = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("設定のシリアライズに失敗しました: {}", e))?;
 
-    std::fs::write(&path, json)
-        .map_err(|e| format!("設定ファイルを書き込めません: {}", e))?;
+    std::fs::write(&path, json).map_err(|e| format!("設定ファイルを書き込めません: {}", e))?;
 
     Ok(())
 }
