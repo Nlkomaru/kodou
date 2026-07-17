@@ -1,6 +1,6 @@
 import { useAtomValue } from "jotai";
 import { Sidebar } from "./sidebar";
-import { isConnectedAtom, readingAtom } from "@/state/heart-rate";
+import { connectionStatusLabelAtom, readingAtom } from "@/state/heart-rate";
 
 type AppSidebarProps = {
   activeItem: string;
@@ -9,12 +9,12 @@ type AppSidebarProps = {
 
 // プレゼンテーショナルなSidebarへ、心拍atomの状態を流し込むコンテナ。
 export function AppSidebar({ activeItem, onNavigate }: AppSidebarProps) {
-  const isConnected = useAtomValue(isConnectedAtom);
+  const statusLabel = useAtomValue(connectionStatusLabelAtom);
   const reading = useAtomValue(readingAtom);
 
   return (
     <Sidebar
-      connected={isConnected}
+      status={statusLabel}
       activeItem={activeItem}
       onNavigate={onNavigate}
       battery={reading?.batteryPercent == null ? "未取得" : `${reading.batteryPercent}%`}

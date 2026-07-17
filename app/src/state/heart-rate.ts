@@ -16,6 +16,7 @@ export const bpmHistoryAtom = atom<MetricPoint[]>([]);
 export const rrHistoryAtom = atom<MetricPoint[]>([]);
 export const statusAtom = atom<HeartRateStatusEvent>(disconnectedStatus);
 export const isScanningAtom = atom(false);
+/** @deprecated controls.tsx の移行後は削除予定。代わりに statusAtom.state を直接参照してください。 */
 export const isStartingAtom = atom(false);
 export const errorAtom = atom("");
 
@@ -31,6 +32,38 @@ export const selectedDeviceAtom = atom((get) =>
 
 export const isConnectedAtom = atom((get) => get(statusAtom).state === "connected");
 
+
+// 接続状態を日本語ラベルに変換する派生atom。
+export const connectionStatusLabelAtom = atom((get) => {
+  const state = get(statusAtom).state;
+  switch (state) {
+    case "scanning":
+      return "検索中…";
+    case "connecting":
+      return "接続中…";
+    case "connected":
+      return "接続済み";
+    case "reconnecting":
+      return "再接続中…";
+    case "disconnected":
+      return "未接続";
+    case "warning":
+      return "警告";
+    case "error":
+      return "エラー";
+  }
+});
+
+// 接続状態をAlert variantに変換する派生atom。
+export const connectionStatusVariantAtom = atom<"default" | "destructive">((get) => {
+  const state = get(statusAtom).state;
+  switch (state) {
+    case "error":
+      return "destructive";
+    default:
+      return "default";
+  }
+});
 export const syncedTimeDomainAtom = atom((get) => getSyncedTimeDomain(get(bpmHistoryAtom), get(rrHistoryAtom)));
 
 // 統計表示窓とOSCのAverage窓。双方向で参照する純が異なるため分けて持つ。

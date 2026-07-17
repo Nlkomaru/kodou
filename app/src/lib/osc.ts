@@ -5,6 +5,7 @@ import type { HeartRateReading, HeartRateStats, HeartRateStatusEvent, OscArg, Os
 export type OscParamKey =
   | "connected"
   | "reconnecting"
+  | "connecting"
   | "hr"
   | "hrFloat"
   | "hrNormalised"
@@ -30,6 +31,7 @@ export type OscParamMeta = {
 export const OSC_PARAM_META: OscParamMeta[] = [
   { key: "connected", label: "Connected", type: "Bool", note: "受信中 true" },
   { key: "reconnecting", label: "Reconnecting", type: "Bool", note: "再接続中 true" },
+  { key: "connecting", label: "接続中", type: "Bool", note: "BLE機器への接続試行中" },
   { key: "hr", label: "HR", type: "Int", note: "現在 BPM" },
   { key: "hrFloat", label: "HRFloat", type: "Float", note: "BPM float化" },
   { key: "hrNormalised", label: "HRNormalised", type: "Float", note: "0〜1正規化" },
@@ -150,11 +152,13 @@ export function buildStaticOscValues(input: OscSenderInput): OscParamValue[] {
   // 心拍未受信時でも送るパラメータ（接続状態・バッテリー）。
   const isConnected = status.state === "connected";
   const isReconnecting = status.state === "reconnecting";
+  const isConnecting = status.state === "connecting";
   const battery = reading?.batteryPercent ?? NO_BATTERY;
 
   const values: OscParamValue[] = [
     { key: "connected", arg: { kind: "Bool", value: isConnected } },
     { key: "reconnecting", arg: { kind: "Bool", value: isReconnecting } },
+    { key: "connecting", arg: { kind: "Bool", value: isConnecting } },
     { key: "battery", arg: { kind: "Int", value: battery } },
     { key: "batteryFloat", arg: { kind: "Float", value: clamp01(battery / 100) } },
   ];

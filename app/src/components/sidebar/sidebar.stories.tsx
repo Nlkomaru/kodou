@@ -22,7 +22,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Connected: Story = {
   args: {
-    connected: true,
+    status: "接続済み",
     activeItem: "dashboard",
     battery: "90%",
     sensorContact: "不明",
@@ -32,7 +32,7 @@ export const Connected: Story = {
 
 export const Disconnected: Story = {
   args: {
-    connected: false,
+    status: "未接続",
     activeItem: "dashboard",
   },
 };

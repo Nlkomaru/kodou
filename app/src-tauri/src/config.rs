@@ -43,7 +43,7 @@ impl Default for OscSettings {
 pub type CompatibilityMap = BTreeMap<String, Vec<String>>;
 
 /// フロントエンドへ返す設定一式。
-#[derive(Debug, Clone, Serialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppConfig {
     pub osc: OscSettings,
     pub compatibility: CompatibilityMap,
@@ -55,12 +55,16 @@ pub struct AppConfig {
 /// BeatToggle と BeatPulse は VRCOSC ではどちらも `Beat` に対応するため、
 /// 同じアドレスへ両方送ると競合する。既定では BeatToggle のみ有効にする。
 fn default_compatibility() -> CompatibilityMap {
-    let entries: [(&str, &[&str]); 14] = [
+    let entries: [(&str, &[&str]); 15] = [
         (
             "connected",
             &["/avatar/parameters/VRCOSC/Heartrate/Connected"],
         ),
         ("reconnecting", &["/avatar/parameters/Kodou/Reconnecting"]),
+        (
+            "connecting",
+            &["/avatar/parameters/Kodou/Connecting"],
+        ),
         ("hr", &["/avatar/parameters/VRCOSC/Heartrate/Value"]),
         ("hrFloat", &["/avatar/parameters/Kodou/HRFloat"]),
         (
@@ -196,6 +200,7 @@ osc {
 compatibility {
   connected    = ["/avatar/parameters/VRCOSC/Heartrate/Connected"]
   reconnecting = ["/avatar/parameters/Kodou/Reconnecting"]
+  connecting   = ["/avatar/parameters/Kodou/Connecting"]
   hr           = ["/avatar/parameters/VRCOSC/Heartrate/Value"]
   hrFloat      = ["/avatar/parameters/Kodou/HRFloat"]
   hrNormalised = ["/avatar/parameters/VRCOSC/Heartrate/Normalised"]
@@ -235,6 +240,27 @@ pub fn ensure_config_template(app: &AppHandle) {
         let _ = std::fs::create_dir_all(parent);
     }
     let _ = std::fs::write(&path, CONFIG_TEMPLATE);
+}
+
+/// フロントエンドから受け取った設定を config.conf に書き出す。
+/// HOCON は JSON のスーパーセットなので、JSON 形式で保存すれば再読込できる。
+#[tauri::command]
+pub fn save_config(app: AppHandle, config: AppConfig) -> Result<(), String> {
+    let path = config_path(&app)?;
+
+    // 親ディレクトリが存在しない場合は作成
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("設定ディレクトリを作成できません: {}", e))?;
+    }
+
+    let json = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("設定のシリアライズに失敗しました: {}", e))?;
+
+    std::fs::write(&path, json)
+        .map_err(|e| format!("設定ファイルを書き込めません: {}", e))?;
+
+    Ok(())
 }
 
 #[cfg(test)]
