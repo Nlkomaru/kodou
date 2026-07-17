@@ -81,8 +81,9 @@ export const FALLBACK_CONFIG: AppConfig = {
   compatibility: {},
 };
 
-// 心拍が未受信のとき、値系パラメータを0相当にするための既定値。
-const NO_BPM = 0;
+// 心拍が未受信のとき、バッテリー値系パラメータを0相当にするための既定値。
+// BPM依存パラメータは buildStaticOscValues 内で未受信時に送信をスキップするため、
+// NO_BPM は不要になった。
 const NO_BATTERY = 0;
 
 function clamp01(value: number) {
@@ -142,35 +143,47 @@ export function activeParamKeys(addresses: OscAddressMap): OscParamKey[] {
 
 // 拍ごとに送るBeatToggle/BeatPulseとRR Twitchを除く、心拍データから静的に決まる値を組み立てる。
 // 毎回同じ順序で生成し、ReactのuseMemoで差分が拾えるようにする。
+// 心拍未受信時はBPM依存パラメータを送らず、アバター側で前回値が保持されるようにする。
 export function buildStaticOscValues(input: OscSenderInput): OscParamValue[] {
   const { reading, status, stats, bounds, floatMode } = input;
 
-  const bpm = reading?.bpm ?? NO_BPM;
-  const battery = reading?.batteryPercent ?? NO_BATTERY;
-  const rrInterval = reading?.rrIntervalsMs.at(-1) ?? NO_BPM;
+  // 心拍未受信時でも送るパラメータ（接続状態・バッテリー）。
   const isConnected = status.state === "connected";
   const isReconnecting = status.state === "reconnecting";
+  const battery = reading?.batteryPercent ?? NO_BATTERY;
 
-  return [
+  const values: OscParamValue[] = [
     { key: "connected", arg: { kind: "Bool", value: isConnected } },
     { key: "reconnecting", arg: { kind: "Bool", value: isReconnecting } },
-    { key: "hr", arg: { kind: "Int", value: bpm } },
-    {
-      key: "hrFloat",
-      arg: {
-        kind: "Float",
-        value: reading ? normaliseBpm(bpm, bounds, floatMode) : floatMode === "signed" ? -1 : 0,
-      },
-    },
-    {
-      key: "hrNormalised",
-      arg: { kind: "Float", value: reading ? clamp01(normaliseBpm(bpm, bounds, "unsigned")) : 0 },
-    },
-    { key: "hrAverage", arg: { kind: "Int", value: stats.avgBpm ?? 0 } },
     { key: "battery", arg: { kind: "Int", value: battery } },
     { key: "batteryFloat", arg: { kind: "Float", value: clamp01(battery / 100) } },
-    { key: "rrInterval", arg: { kind: "Int", value: rrInterval } },
   ];
+
+  // BPM依存パラメータは心拍未受信時には送らない。
+  // Rust側でBPM=0をフィルタ済みのため、reading.bpm > 0 が保証されている。
+  if (reading) {
+    const bpm = reading.bpm;
+    const rrInterval = reading.rrIntervalsMs.at(-1) ?? bpm;
+
+    values.push(
+      { key: "hr", arg: { kind: "Int", value: bpm } },
+      {
+        key: "hrFloat",
+        arg: { kind: "Float", value: normaliseBpm(bpm, bounds, floatMode) },
+      },
+      {
+        key: "hrNormalised",
+        arg: { kind: "Float", value: clamp01(normaliseBpm(bpm, bounds, "unsigned")) },
+      },
+      { key: "rrInterval", arg: { kind: "Int", value: rrInterval } },
+    );
+
+    if (stats.avgBpm !== null) {
+      values.push({ key: "hrAverage", arg: { kind: "Int", value: Math.round(stats.avgBpm) } });
+    }
+  }
+
+  return values;
 }
 
 // 拍のタイミングを64ms単位で丸める最小値。極端に低いBPMでも休止しすぎないため。

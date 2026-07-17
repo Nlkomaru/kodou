@@ -184,6 +184,11 @@ pub async fn stream_heart_rate(
 
                 match parse_heart_rate_measurement(&notification.value) {
                     Ok(measurement) => {
+                        // 接続直後に一部のBLEデバイスが送る初期値BPM=0を除外する。
+                        // BPM=0は生理学的にあり得ず、記録の最小値や統計を汚染するため破棄する。
+                        if measurement.bpm == 0 {
+                            continue;
+                        }
                         let reading = build_reading(&device_id, measurement, battery_percent);
                         // emitでreadingをmoveする前に、記録有効なら同じ内容をParquetへ1行追記する。
                         // recordは同期処理で.awaitをまたがないため、std Mutexを短時間ロックするだけで済む。

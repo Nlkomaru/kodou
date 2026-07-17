@@ -46,9 +46,13 @@ export function useOscSender() {
   const status = useAtomValue(statusAtom);
   const stats = useAtomValue(oscStatsAtom);
 
+  // BPM=0（未受信・BLE初期値）のときは前回の有効値を維持し、拍タイマーが停止するのを防ぐ。
+  // 初期値0では beatIntervalMs が極大になり拍エフェクトが発火しなくなるため。
   const bpmRef = useRef(0);
   useEffect(() => {
-    bpmRef.current = reading?.bpm ?? 0;
+    if (reading?.bpm && reading.bpm > 0) {
+      bpmRef.current = reading.bpm;
+    }
   }, [reading]);
 
   // 起動時に config.conf を1度だけ読み込む。
