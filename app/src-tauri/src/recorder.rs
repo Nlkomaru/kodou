@@ -365,11 +365,16 @@ impl SummaryAcc {
             self.ended_at_ms = self.ended_at_ms.max(*timestamp);
         }
         for bpm in bpms {
+            // BPM=0は生理学的にあり得ないため集計から除外する。
+            // 接続直後の初期値が混入した既存記録ファイルの救済。
+            if *bpm == 0 {
+                continue;
+            }
             self.min_bpm = self.min_bpm.min(*bpm);
             self.max_bpm = self.max_bpm.max(*bpm);
             self.bpm_total += u64::from(*bpm);
+            self.rows += 1;
         }
-        self.rows += bpms.len() as u64;
     }
 
     // 1行も無いファイル(接続直後に切れた場合など)は集計できない。

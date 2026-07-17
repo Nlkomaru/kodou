@@ -88,14 +88,21 @@ export function computeStats(
     let sum = 0;
     let max = -Infinity;
     let min = Infinity;
+    let validCount = 0;
     for (const point of bpmPoints) {
+      // BPM=0は生理学的にあり得ないため統計から除外する。
+      // Rust側でもフィルタ済みだが、既存の履歴データ救済のため二重防御。
+      if (point.value === 0) continue;
       sum += point.value;
       if (point.value > max) max = point.value;
       if (point.value < min) min = point.value;
+      validCount += 1;
     }
-    avgBpm = Math.round((sum / bpmPoints.length) * 10) / 10;
-    maxBpm = Math.round(max);
-    minBpm = Math.round(min);
+    if (validCount > 0) {
+      avgBpm = Math.round((sum / validCount) * 10) / 10;
+      maxBpm = Math.round(max);
+      minBpm = Math.round(min);
+    }
   }
 
   const rrPoints = pointsWithinWindow(rrHistory, windowMs)
