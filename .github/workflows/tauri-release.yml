@@ -59,6 +59,21 @@ jobs:
         with:
           ref: ${{ needs.resolve-tag.outputs.tag }}
 
+      # latest.json のバージョンはタグではなく tauri.conf.json の値から作られる。
+      # バージョンを上げ忘れたままタグを打つと、ビルドは成功するのに全クライアントが
+      # 「更新なし」と判定して更新が届かないため、ここで早期に落とす。
+      - name: Verify tag matches app version
+        shell: bash
+        env:
+          TAG: ${{ needs.resolve-tag.outputs.tag }}
+        run: |
+          config_version="$(jq -r .version app/src-tauri/tauri.conf.json)"
+          tag_version="${TAG#v}"
+          if [ "$config_version" != "$tag_version" ]; then
+            echo "tag $tag_version does not match tauri.conf.json version $config_version" >&2
+            exit 1
+          fi
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
