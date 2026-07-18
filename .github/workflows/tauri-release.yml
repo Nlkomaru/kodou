@@ -59,20 +59,21 @@ jobs:
         with:
           ref: ${{ needs.resolve-tag.outputs.tag }}
 
-      # latest.json のバージョンはタグではなく tauri.conf.json の値から作られる。
-      # バージョンを上げ忘れたままタグを打つと、ビルドは成功するのに全クライアントが
-      # 「更新なし」と判定して更新が届かないため、ここで早期に落とす。
-      - name: Verify tag matches app version
+      # バージョンの正はリリースタグ（release-drafter が採番）であり、
+      # tauri.conf.json の version はリポジトリ上では更新していない。
+      # 一方 latest.json とバンドルのバージョンは tauri.conf.json から作られるため、
+      # ここでタグの値を書き込んでおかないと、更新が届かない・古い版が配布される。
+      - name: Sync app version from release tag
         shell: bash
         env:
           TAG: ${{ needs.resolve-tag.outputs.tag }}
         run: |
-          config_version="$(jq -r .version app/src-tauri/tauri.conf.json)"
-          tag_version="${TAG#v}"
-          if [ "$config_version" != "$tag_version" ]; then
-            echo "tag $tag_version does not match tauri.conf.json version $config_version" >&2
-            exit 1
-          fi
+          version="${TAG#v}"
+          config="app/src-tauri/tauri.conf.json"
+          # jq は in-place 編集ができないので一時ファイル経由で書き戻す。
+          jq --arg version "$version" '.version = $version' "$config" > "$config.tmp"
+          mv "$config.tmp" "$config"
+          echo "app version set to $version"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
