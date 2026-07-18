@@ -48,10 +48,15 @@ tauri-plugin-updater = "2"
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]
-codegen-units = 1
-# thin LTO はビルド時間（特に最終リンク）を大きく短縮しつつ、fat LTO に近い
-# 実行性能を保つ。Intel/Apple の両プラットフォームで CI のビルドを速くする。
-lto = "thin"
+# codegen-units = 1 は最適化とバイナリサイズには最良だが、クレート内のコード生成を
+# 直列化するためコンパイル時間が最も長くなる。本アプリの処理は心拍データの受信・変換が
+# 中心で CPU バウンドではないため、実行性能よりリリースビルドの所要時間を優先し、
+# 既定値の 16 に戻して並列にコード生成させる。
+codegen-units = 16
+# LTO はビルドのたびに追加のリンクパスが走り、CI のビルド時間で無視できない割合を占める。
+# 上と同じ理由（実行性能がボトルネックではない）で無効にし、ビルド時間を優先する。
+# バイナリサイズは数 MB 増えるが、配布は Tauri の updater 経由の差分なしフル配信のため許容する。
+lto = false
 opt-level = 3
 panic = "abort"
 strip = true
