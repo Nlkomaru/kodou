@@ -251,7 +251,21 @@ export function OscPanel() {
                 className="h-8 text-xs"
               />
             </div>
+            <div className="flex items-center gap-2">
+              <Label className="shrink-0 text-xs text-muted-foreground">自動停止 (秒)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={config.osc.disconnectTimeoutSecs}
+                onChange={(e) => handleSettingChange("disconnectTimeoutSecs", e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
           </div>
+          {/* 0 が「無効」を意味することは値だけでは伝わらないため、補足を添える。 */}
+          <p className="text-xs text-muted-foreground">
+            自動停止: BLE切断からこの秒数だけ再接続できないとモニタリングを停止します。0 で無効（無限に再接続）。
+          </p>
         </section>
 
         <Separator />

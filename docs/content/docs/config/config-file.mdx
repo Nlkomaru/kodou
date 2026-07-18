@@ -38,6 +38,7 @@ osc {
   averageWindowMs = 10000
   beatPulseMs = 120
   rrTwitchThresholdMs = 50
+  disconnectTimeoutSecs = 60
 }
 ```
 
@@ -49,6 +50,19 @@ osc {
 | `averageWindowMs` | `10000` | `HRAverage` を計算する対象期間（ms） |
 | `beatPulseMs` | `120` | `BeatPulse` を `true` にしてから `false` へ戻すまでの時間（ms） |
 | `rrTwitchThresholdMs` | `50` | 連続する [RR間隔](/docs/metrics/rr-interval) の差がこの値を超えたときに `RRTwitchUp` / `RRTwitchDown` を発火させる |
+| `disconnectTimeoutSecs` | `60` | 心拍センサーが切断されてから、この秒数だけ再接続できないとモニタリングを自動停止します。`0` にすると自動停止せず、無限に再接続を試み続けます |
+
+### 自動停止のふるまい
+
+心拍センサーとの接続が切れると、Kodou は指数バックオフ（1秒→2秒→…→最大30秒間隔）で自動的に再接続を試みます。
+`disconnectTimeoutSecs` で指定した秒数のあいだ一度も心拍を受信できなかった場合は「完全切断」とみなし、次の処理を行います。
+
+- 再接続の試行を打ち切り、モニタリングを停止する
+- 記録中のファイルを確定して `.parquet` へ変換する（記録は失われません）
+- 接続状態を「未接続」にし、停止理由を画面に表示する
+
+再接続の途中で心拍を1件でも受信できた場合、経過時間の計測はリセットされます。
+接続が不安定で切断を繰り返す環境では、この値を大きくするか `0` にしてください。
 
 ## compatibility セクション
 

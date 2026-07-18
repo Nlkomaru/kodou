@@ -58,6 +58,16 @@ struct HeartRateMeasurement {
     sensor_contact_detected: Option<bool>,
 }
 
+/// ストリームが終了したときの結果。
+///
+/// 呼び出し側の再接続ループは「接続できていたが切れた」のか
+/// 「そもそも一度も受信できていない」のかを区別する必要がある。
+/// `Ok`/`Err` だけでは両者が同じ扱いになってしまうため、受信実績をここで返す。
+pub struct StreamOutcome {
+    /// このセッションで心拍通知を1件以上受信できたか。
+    pub received_reading: bool,
+}
+
 // 接続準備が終わったあとのストリーミングに必要な情報一式。
 // stream_heart_rate本体を「通知を読むループ」に集中させるためにまとめている。
 struct HeartRateSession {
@@ -128,7 +138,7 @@ pub async fn stream_heart_rate(
     device_id: String,
     mut stop_rx: watch::Receiver<bool>,
     recorder: Option<Arc<Mutex<HeartRateRecorder>>>,
-) -> Result<(), String> {
+) -> Result<StreamOutcome, String> {
     // recorder は std::sync::Mutex 前提。exit時に同期closeできるよう共有状態からも触る。
     let HeartRateSession {
         peripheral,
@@ -153,6 +163,8 @@ pub async fn stream_heart_rate(
         Some(&device_id),
     );
     let mut battery_tick = tokio::time::interval(Duration::from_secs(60 * 5));
+    // 購読できただけでは通知が届くとは限らないため、実際に1件受信できたかを別に覚える。
+    let mut received_reading = false;
 
     // ユーザー操作による停止、定期的なバッテリー更新、BLE通知、無通信タイムアウトをひとつの受信ループで扱う。
     loop {
@@ -161,7 +173,7 @@ pub async fn stream_heart_rate(
                 if *stop_rx.borrow() {
                     let _ = peripheral.disconnect().await;
                     emit_status(&app, "disconnected", "心拍モニタリングを停止しました", Some(&device_id));
-                    return Ok(());
+                    return Ok(StreamOutcome { received_reading });
                 }
             }
             _ = battery_tick.tick() => {
@@ -174,7 +186,7 @@ pub async fn stream_heart_rate(
                 let Some(notification) = maybe_notification else {
                     let _ = peripheral.disconnect().await;
                     emit_status(&app, "disconnected", "心拍通知ストリームが閉じられました", Some(&device_id));
-                    return Ok(());
+                    return Ok(StreamOutcome { received_reading });
                 };
 
                 // 同じ通知ストリームに他のcharacteristicが混ざることがあるため、心拍通知だけ処理する。
@@ -189,6 +201,7 @@ pub async fn stream_heart_rate(
                         if measurement.bpm == 0 {
                             continue;
                         }
+                        received_reading = true;
                         let reading = build_reading(&device_id, measurement, battery_percent);
                         // emitでreadingをmoveする前に、記録有効なら同じ内容をParquetへ1行追記する。
                         // recordは同期処理で.awaitをまたがないため、std Mutexを短時間ロックするだけで済む。
@@ -209,7 +222,7 @@ pub async fn stream_heart_rate(
             _ = tokio::time::sleep(Duration::from_secs(30)) => {
                 let _ = peripheral.disconnect().await;
                 emit_status(&app, "error", "30秒間、心拍通知を受信できませんでした", Some(&device_id));
-                return Ok(());
+                return Ok(StreamOutcome { received_reading });
             }
         }
     }

@@ -59,6 +59,8 @@ export type OscSettings = {
   averageWindowMs: number;
   beatPulseMs: number;
   rrTwitchThresholdMs: number;
+  /** BLE切断からモニタリングを自動停止するまでの秒数。0 なら自動停止しない。 */
+  disconnectTimeoutSecs: number;
 };
 
 // Rustの get_config コマンドが返す設定一式。
@@ -79,6 +81,7 @@ export const FALLBACK_CONFIG: AppConfig = {
     averageWindowMs: 10_000,
     beatPulseMs: 120,
     rrTwitchThresholdMs: 50,
+    disconnectTimeoutSecs: 60,
   },
   compatibility: {},
 };

@@ -21,6 +21,8 @@ pub struct OscSettings {
     pub beat_pulse_ms: u64,
     /// RRTwitchUp / RRTwitchDown を発火させる RR 間隔差のしきい値(ms)。
     pub rr_twitch_threshold_ms: u64,
+    /// BLE切断からモニタリングを自動停止するまでの秒数。0 なら自動停止せず無限に再接続する。
+    pub disconnect_timeout_secs: u64,
 }
 
 impl Default for OscSettings {
@@ -33,6 +35,7 @@ impl Default for OscSettings {
             average_window_ms: 10_000,
             beat_pulse_ms: 120,
             rr_twitch_threshold_ms: 50,
+            disconnect_timeout_secs: 60,
         }
     }
 }
@@ -109,7 +112,8 @@ pub fn get_config(app: AppHandle) -> AppConfig {
     load_config(&app)
 }
 
-fn load_config(app: &AppHandle) -> AppConfig {
+/// config.conf を読み込む。フロントエンド経由でなく Rust 内部から参照する場合にも使う。
+pub fn load_config(app: &AppHandle) -> AppConfig {
     let path = match config_path(app) {
         Ok(path) => path,
         Err(_) => return AppConfig::default_with_compatibility(),
@@ -188,6 +192,11 @@ osc {
 
   // RRTwitchUp / RRTwitchDown を発火させる RR 間隔差のしきい値 (ms)。
   rrTwitchThresholdMs = 50
+
+  // BLE切断からモニタリングを自動停止するまでの秒数。
+  // この秒数のあいだ再接続できないと「完全切断」とみなし、記録を確定して停止します。
+  // 0 にすると自動停止せず、無限に再接続を試み続けます。
+  disconnectTimeoutSecs = 60
 }
 
 // パラメータ名 = 送信するOSCアドレスの配列。
@@ -279,6 +288,14 @@ osc {
         // 省略したキーは既定値のまま。
         assert_eq!(config.osc.bpm_min, 0);
         assert_eq!(config.osc.average_window_ms, 10_000);
+        assert_eq!(config.osc.disconnect_timeout_secs, 60);
+    }
+
+    // 0 は「自動停止しない」という有効な指定であり、既定値へ戻してはいけない。
+    #[test]
+    fn zero_disconnect_timeout_disables_auto_stop() {
+        let config = parse_config("osc { disconnectTimeoutSecs = 0 }");
+        assert_eq!(config.osc.disconnect_timeout_secs, 0);
     }
 
     #[test]
