@@ -81,7 +81,7 @@ export function Sidebar({
             const fgClass = isConnected ? "text-status-connected-fg" : "text-secondary-foreground";
             return (
               <div
-                className={`flex h-10 w-full items-center gap-3 rounded-lg px-3 py-2 ${bgClass}`}
+                className={`flex h-10 w-full items-center gap-3 rounded-lg px-4 py-2 ${bgClass}`}
               >
                 <span
                   className={`size-2 rounded-full ${dotClass}`}
@@ -108,7 +108,7 @@ export function Sidebar({
                 onClick={() => onNavigate?.(item.id)}
                 aria-current={isActive ? "page" : undefined}
                 className={
-                  "h-auto w-full justify-start gap-3 px-3 py-2.5 text-base font-medium " +
+                  "h-auto w-full justify-start gap-3 px-4 py-2.5 text-base font-medium " +
                   (isActive
                     ? "bg-secondary text-foreground"
                     : "text-secondary-foreground hover:bg-secondary/50")

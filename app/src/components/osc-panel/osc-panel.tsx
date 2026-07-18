@@ -189,7 +189,7 @@ export function OscPanel() {
             <button
               type="button"
               onClick={handleAddTarget}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground hover:bg-primary/90"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md bg-primary px-3.5 py-1 text-xs font-bold text-primary-foreground hover:bg-primary/90"
             >
               <Plus className="size-3" />
               追加
@@ -295,7 +295,7 @@ export function OscPanel() {
               return (
                 <div
                   key={meta.key}
-                  className="flex flex-col gap-1.5 rounded-lg bg-muted/30 px-3.5 py-3 ring-1 ring-border/70"
+                  className="flex flex-col gap-2 rounded-lg bg-muted/30 px-5 py-4 ring-1 ring-border/70"
                 >
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-xs font-bold">{meta.label}</span>
@@ -335,7 +335,7 @@ export function OscPanel() {
                     <button
                       type="button"
                       onClick={() => handleAddAddress(meta.key)}
-                      className="inline-flex shrink-0 items-center justify-center rounded-md bg-primary px-2 text-[11px] font-bold text-primary-foreground hover:bg-primary/90"
+                      className="inline-flex shrink-0 items-center justify-center rounded-md bg-primary px-3 text-[11px] font-bold text-primary-foreground hover:bg-primary/90"
                     >
                       <Plus className="size-3" />
                     </button>
