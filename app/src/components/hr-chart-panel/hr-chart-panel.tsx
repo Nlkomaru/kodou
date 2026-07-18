@@ -1,13 +1,16 @@
 import { useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatTime } from "@/lib/heart-rate";
-import type { MetricPoint } from "@/lib/heart-rate-types";
+import { formatTime, pointsWithinDomain } from "@/lib/heart-rate";
+import type { MetricPoint, TimeDomain } from "@/lib/heart-rate-types";
 
 const CHART_WIDTH = 720;
 const CHART_HEIGHT = 120;
 const CHART_PADDING = { top: 10, right: 8, bottom: 22, left: 28 };
 const X_TICK_INTERVAL_MS = 10_000;
+// この時間より長くデータが来ていなければ「データなし」区間として描く。
+// BLE通知はおよそ1秒間隔なので、通常の揺らぎを空白と誤認しない程度に余裕を持たせる。
+const GAP_THRESHOLD_MS = 3_000;
 
 export type HrChartPanelStats = {
   max: string | null;
@@ -26,6 +29,12 @@ type HrChartPanelProps = {
   stats: HrChartPanelStats;
   color?: string;
   smooth?: boolean;
+  /**
+   * X軸に使う時間範囲。壁時計基準の窓を渡すと、データが途切れても軸が流れ続け、
+   * 受信できていない区間が空白として表示される。
+   * 省略した場合はデータの実測範囲を使う(静的な表示・Storybook向け)。
+   */
+  timeDomain?: TimeDomain;
 };
 
 const STAT_LABELS: { key: keyof HrChartPanelStats; label: string }[] = [
@@ -94,8 +103,11 @@ function linePath(coords: [number, number][]) {
   return path;
 }
 
-function chartGeometry(rawPoints: MetricPoint[], smooth = true) {
-  const points = smoothValues(rawPoints);
+function chartGeometry(rawPoints: MetricPoint[], smooth = true, timeDomain?: TimeDomain) {
+  // 壁時計の窓が指定されている場合、その外側の点は描画対象から外す。
+  // 受信が途切れると履歴には窓の外の古い点が残り、そのまま描くと軸からはみ出す。
+  const visiblePoints = timeDomain ? pointsWithinDomain(rawPoints, timeDomain) : rawPoints;
+  const points = smoothValues(visiblePoints);
   const plotWidth = CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right;
   const plotHeight = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
   const values = points.map((point) => point.value);
@@ -105,8 +117,10 @@ function chartGeometry(rawPoints: MetricPoint[], smooth = true) {
   const chartMin = Math.max(0, Math.floor(minValue - range * 0.16));
   const chartMax = Math.ceil(maxValue + range * 0.16);
   const chartRange = Math.max(chartMax - chartMin, 1);
-  const start = points.length > 0 ? points[0].timestamp : 0;
-  const end = points.length > 0 ? points[points.length - 1].timestamp : 1;
+  // 時間軸は壁時計の窓を最優先で使う。窓が無い場合(Storybookなど静的表示)だけ、
+  // 従来どおりデータの実測範囲へフォールバックする。
+  const start = timeDomain ? timeDomain.start : points.length > 0 ? points[0].timestamp : 0;
+  const end = timeDomain ? timeDomain.end : points.length > 0 ? points[points.length - 1].timestamp : 1;
   const timeRange = Math.max(end - start, 1);
 
   const xFor = (timestamp: number) => CHART_PADDING.left + ((timestamp - start) / timeRange) * plotWidth;
@@ -115,9 +129,13 @@ function chartGeometry(rawPoints: MetricPoint[], smooth = true) {
     ? smoothPath(points.map((point) => [xFor(point.timestamp), yFor(point.value)]))
     : linePath(points.map((point) => [xFor(point.timestamp), yFor(point.value)]));
   const baselineY = CHART_HEIGHT - CHART_PADDING.bottom;
+  // 塗りつぶしは軸の端ではなく、実データがある区間だけを閉じる。
+  // 軸の端まで閉じると、データが無い区間まで塗られてしまう。
+  const dataStart = points.length > 0 ? points[0].timestamp : start;
+  const dataEnd = points.length > 0 ? points[points.length - 1].timestamp : end;
   const areaPath =
     points.length > 0
-      ? `${path} L ${xFor(end).toFixed(2)} ${baselineY} L ${xFor(start).toFixed(2)} ${baselineY} Z`
+      ? `${path} L ${xFor(dataEnd).toFixed(2)} ${baselineY} L ${xFor(dataStart).toFixed(2)} ${baselineY} Z`
       : "";
   const gridValues = points.length > 0 ? [chartMax, Math.round((chartMax + chartMin) / 2), chartMin] : [];
   // 時間軸はデータ点の間引きではなく、10秒刻みの切りのよい時刻に目盛りを置く。
@@ -129,7 +147,14 @@ function chartGeometry(rawPoints: MetricPoint[], smooth = true) {
     }
   }
 
-  return { areaPath, baselineY, gridValues, path, timeTicks, xFor, yFor };
+  // 最新データから軸の右端までが空いていれば、そこを「データなし」区間として描く。
+  // 通常のBLE通知間隔(約1秒)の揺らぎを空白と見せないよう、しきい値を超えた場合だけ扱う。
+  const gap =
+    timeDomain && points.length > 0 && end - dataEnd > GAP_THRESHOLD_MS
+      ? { fromX: xFor(dataEnd), toX: xFor(end), sinceMs: end - dataEnd }
+      : null;
+
+  return { areaPath, baselineY, gap, gridValues, hasPoints: points.length > 0, path, timeTicks, xFor, yFor };
 }
 
 export function HrChartPanel({
@@ -140,10 +165,15 @@ export function HrChartPanel({
   stats,
   color = "#dc3e42",
   smooth = true,
+  timeDomain,
 }: HrChartPanelProps) {
   const gradientId = useId();
   const [expanded, setExpanded] = useState(true);
-  const { areaPath, baselineY, gridValues, path, timeTicks, xFor, yFor } = chartGeometry(points, smooth);
+  const { areaPath, baselineY, gap, gridValues, hasPoints, path, timeTicks, xFor, yFor } = chartGeometry(
+    points,
+    smooth,
+    timeDomain,
+  );
 
   return (
     <div className="flex min-w-0 flex-col rounded-xl bg-background p-4">
@@ -179,7 +209,7 @@ export function HrChartPanel({
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
-        {points.length > 0 ? (
+        {hasPoints ? (
           <>
             {gridValues.map((value) => (
               <text
@@ -209,6 +239,30 @@ export function HrChartPanel({
               d={path}
               stroke={color}
             />
+            {/* データが来ていない区間。線が途切れているだけだと「止まっている」ように見えるため、
+                帯とラベルで受信できていないことを明示する。 */}
+            {gap && (
+              <>
+                <rect
+                  className="fill-muted-foreground/10"
+                  x={gap.fromX}
+                  y={CHART_PADDING.top}
+                  width={Math.max(gap.toX - gap.fromX, 0)}
+                  height={baselineY - CHART_PADDING.top}
+                />
+                {/* 帯が狭いとラベルがはみ出して読めないため、十分な幅があるときだけ出す。 */}
+                {gap.toX - gap.fromX > 60 && (
+                  <text
+                    className="fill-muted-foreground text-[7px]"
+                    x={(gap.fromX + gap.toX) / 2}
+                    y={CHART_PADDING.top + 12}
+                    textAnchor="middle"
+                  >
+                    データ待機中 ({Math.round(gap.sinceMs / 1000)}秒)
+                  </text>
+                )}
+              </>
+            )}
           </>
         ) : (
           <text

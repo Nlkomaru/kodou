@@ -1,5 +1,5 @@
 import { atom } from "jotai";
-import { appendHistory, CHART_WINDOW_MS, computeStats, getSyncedTimeDomain, rrIntervalsToPoints } from "@/lib/heart-rate";
+import { appendHistory, CHART_WINDOW_MS, computeStats, rrIntervalsToPoints } from "@/lib/heart-rate";
 import type { HeartRateDevice, HeartRateReading, HeartRateStats, HeartRateStatusEvent, MetricPoint } from "@/lib/heart-rate-types";
 
 export const disconnectedStatus: HeartRateStatusEvent = {
@@ -64,8 +64,6 @@ export const connectionStatusVariantAtom = atom<"default" | "destructive">((get)
       return "default";
   }
 });
-export const syncedTimeDomainAtom = atom((get) => getSyncedTimeDomain(get(bpmHistoryAtom), get(rrHistoryAtom)));
-
 // 統計表示窓とOSCのAverage窓。双方向で参照する純が異なるため分けて持つ。
 export const statsWindowMsAtom = atom(CHART_WINDOW_MS);
 

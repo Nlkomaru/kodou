@@ -1,7 +1,8 @@
 import { useAtomValue } from "jotai";
 import { DataHeader } from "@/components/data-header/data-header";
 import { HrChartPanel, type HrChartPanelStats } from "@/components/hr-chart-panel/hr-chart-panel";
-import { computeSdnn, computeStats, pointsWithinWindow } from "@/lib/heart-rate";
+import { computeSdnn, computeStats, getWallClockTimeDomain, pointsWithinWindow } from "@/lib/heart-rate";
+import { useWallClockNow } from "@/hooks/use-wall-clock-now";
 import type { MetricPoint } from "@/lib/heart-rate-types";
 import { bpmHistoryAtom, heartRateStatsAtom, readingAtom, rrHistoryAtom, statsWindowMsAtom } from "@/state/heart-rate";
 import { StatusMessage } from "@/components/status-message/status-message";
@@ -40,6 +41,9 @@ export function DashboardPage() {
   const rrHistory = useAtomValue(rrHistoryAtom);
   const stats = useAtomValue(heartRateStatsAtom);
   const statsWindowMs = useAtomValue(statsWindowMsAtom);
+  // 2つのチャートで同じ時刻を使い、X軸を揃えたまま壁時計で流し続ける。
+  const now = useWallClockNow();
+  const timeDomain = getWallClockTimeDomain(now);
 
   const fiveMinuteStats = computeStats(bpmHistory, rrHistory, FIVE_MINUTES_MS);
   const sdnnMs = computeSdnn(rrHistory, statsWindowMs);
@@ -67,8 +71,8 @@ export function DashboardPage() {
   return (
     <div className="flex flex-col gap-4">
       <DataHeader bpm={reading?.bpm ?? null} rrMs={latestRr != null ? Math.round(latestRr) : null} />
-      <HrChartPanel title="HR" unit="bpm" current={reading?.bpm ?? null} points={bpmHistory} stats={hrStats} />
-      <HrChartPanel title="RR-interval" unit="ms" current={latestRr} points={rrHistory} stats={rrStats} color="#0090FF" smooth={false} />
+      <HrChartPanel title="HR" unit="bpm" current={reading?.bpm ?? null} points={bpmHistory} stats={hrStats} timeDomain={timeDomain} />
+      <HrChartPanel title="RR-interval" unit="ms" current={latestRr} points={rrHistory} stats={rrStats} color="#0090FF" smooth={false} timeDomain={timeDomain} />
       <StatusMessage />
     </div>
   );

@@ -30,23 +30,25 @@ export function rrIntervalsToPoints(endTimestamp: number, intervalsMs: number[])
   return points.reverse();
 }
 
-// BPMとRRのチャートで同じ時間範囲を使い、X軸を揃える。
-// データの実測範囲ではなく常に直近1分の固定窓を返すことで、
-// データが1分未満でも軸が縮まず(足りない)、系列ごとに終端がずれても
-// 描画がはみ出さない(オーバーフローしない)ようにする。
-export function getSyncedTimeDomain(...series: MetricPoint[][]): TimeDomain | null {
-  const timestamps = series.flatMap((points) => points.map((point) => point.timestamp));
-
-  if (timestamps.length === 0) {
-    return null;
-  }
-
-  const maxTimestamp = Math.max(...timestamps);
-
+// チャートのX軸範囲を壁時計基準で返す。
+//
+// データの実測範囲から軸を決めると、BLEが途切れた瞬間に軸も止まってしまい、
+// チャートが「フリーズしている」のか「データが来ていない」のか区別できなくなる。
+// 現在時刻を終端に固定することで、データの有無にかかわらず軸が流れ続け、
+// 受信できていない区間がそのまま空白として現れる。
+// BPMとRRで同じ値を使えば、系列ごとに終端がずれてもX軸が揃う。
+export function getWallClockTimeDomain(now: number): TimeDomain {
   return {
-    start: maxTimestamp - CHART_WINDOW_MS,
-    end: maxTimestamp,
+    start: now - CHART_WINDOW_MS,
+    end: now,
   };
+}
+
+// 指定した時間範囲に収まる点だけを返す。
+// 履歴は「最新データ基準」で間引かれているため、受信が途切れると
+// 壁時計の窓から外れた古い点が残る。描画前にここで落とす。
+export function pointsWithinDomain(points: MetricPoint[], domain: TimeDomain): MetricPoint[] {
+  return points.filter((point) => point.timestamp >= domain.start && point.timestamp <= domain.end);
 }
 
 export function formatTime(timestamp: number) {
