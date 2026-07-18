@@ -44,8 +44,18 @@ Kodou は Tauri v2 の Updater プラグインを使い、GitHub Releases から
 - 適用後は「再起動して適用」ボタンから `relaunch()` する。
 - 更新確認に失敗しても心拍監視・記録・OSC 送信は継続する。
 
+## バージョンの決まり方
+
+バージョンの正はリリースタグ（release-drafter が採番）です。リポジトリ上の
+`tauri.conf.json` の `version` は更新せず、ワークフローの
+「Sync app version from release tag」ステップがビルド直前にタグの値を書き込みます。
+
+`latest.json` とバンドルのバージョンはこの `tauri.conf.json` から作られるため、
+このステップが無いと配布物が常に古いバージョンを名乗り、クライアントは
+「更新なし」と判定して更新が永久に届きません。
+
 ## リリース手順
 
-1. `app/src-tauri/tauri.conf.json` と `app/package.json` のバージョンを上げる。
-2. main へマージし、release-drafter のドラフトを公開する。
-3. ビルド完了後、リリースに `latest.json` と各バンドル・`.sig` が添付されていることを確認する。
+1. main へマージし、release-drafter のドラフトを公開する（タグが採番される）。
+2. ビルド完了後、リリースに `latest.json` と各バンドル・`.sig` が添付されていることを確認する。
+3. `latest.json` の `version` がタグと一致し、`platforms` に3プラットフォーム分あることを確認する。
