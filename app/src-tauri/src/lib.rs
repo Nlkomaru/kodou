@@ -4,8 +4,11 @@ mod osc;
 mod recorder;
 
 use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc, Mutex,
+    },
+    time::{Duration, Instant},
 };
 use tauri::{
     menu::{Menu, MenuItem},
@@ -41,10 +44,16 @@ struct HeartRateMonitorState {
 }
 
 struct HeartRateMonitorControl {
+    // 監視セッションの識別子。自動停止したタスクが、後から始まった別セッションの状態を
+    // 誤って消さないよう、片付ける前にこのIDが自分のものかを確認する。
+    session_id: u64,
     stop_tx: watch::Sender<bool>,
     // このセッションの記録先。ユーザー停止・再接続ループ終了・アプリ終了のいずれでもここからcloseできる。
     recorder: Option<SharedRecorder>,
 }
+
+// 監視セッションごとに単調増加するID。値そのものに意味はなく、同一性の判定だけに使う。
+static NEXT_SESSION_ID: AtomicU64 = AtomicU64::new(1);
 
 #[tauri::command]
 async fn scan_heart_rate_monitors(
@@ -65,6 +74,14 @@ async fn start_heart_rate_monitor(
     stop_current_monitor(&state);
 
     let (stop_tx, stop_rx) = watch::channel(false);
+    let session_id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
+
+    // 切断が続いたときに自動停止するまでの猶予。0 は「自動停止しない」を意味する。
+    // 設定は開始時に一度だけ読み、セッション途中で挙動が変わらないようにする。
+    let disconnect_timeout = match config::load_config(&app).osc.disconnect_timeout_secs {
+        0 => None,
+        secs => Some(Duration::from_secs(secs)),
+    };
 
     // 1セッション=1 Parquetファイル。再接続をまたいでも同じファイルへ追記し続ける。
     // 記録の初期化に失敗しても、モニタリング自体は続行できるようNoneで進める。
@@ -95,6 +112,7 @@ async fn start_heart_rate_monitor(
             .lock()
             .map_err(|_| "心拍モニターの状態をロックできませんでした".to_string())?;
         *monitor = Some(HeartRateMonitorControl {
+            session_id,
             stop_tx,
             recorder: recorder.clone(),
         });
@@ -103,6 +121,9 @@ async fn start_heart_rate_monitor(
     // BLE通知の受信は長く動くため、Tauri command自体はすぐ返してバックグラウンドで処理する。
     tauri::async_runtime::spawn(async move {
         let mut reconnect_delay = Duration::ZERO;
+        // 切断が始まった時刻。受信できているあいだは None のままで、
+        // 一度も受信できないまま経過した時間が disconnect_timeout を超えたら自動停止する。
+        let mut disconnected_since: Option<Instant> = None;
 
         // ユーザーによる停止以外でストリームが終了したときは、
         // 指数バックオフで自動再接続を繰り返す。
@@ -124,8 +145,35 @@ async fn start_heart_rate_monitor(
                 break;
             }
 
+            // 心拍を1件でも受信できていれば「接続は生きていた」とみなし、
+            // バックオフと切断経過時間の両方を測り直す。
+            if matches!(&result, Ok(outcome) if outcome.received_reading) {
+                reconnect_delay = Duration::ZERO;
+                disconnected_since = None;
+            }
+
+            // 切断が続いている時間を測り始める。すでに計測中ならその開始時刻を使う。
+            let elapsed = disconnected_since.get_or_insert_with(Instant::now).elapsed();
+
+            // 猶予を超えたら完全切断とみなし、再接続をあきらめてループを抜ける。
+            // ループ後の記録確定・recording-stopped 通知はユーザー停止時と同じ経路を通る。
+            if disconnect_timeout.is_some_and(|timeout| elapsed >= timeout) {
+                let _ = app.emit(
+                    "heart-rate-status",
+                    HeartRateStatusEvent {
+                        state: "disconnected",
+                        message: format!(
+                            "{}秒間再接続できなかったため、モニタリングを停止しました",
+                            elapsed.as_secs()
+                        ),
+                        device_id: Some(device_id.clone()),
+                    },
+                );
+                break;
+            }
+
             match result {
-                Ok(()) => {
+                Ok(_) => {
                     // ストリームが正常終了したが停止要求がない場合は切断扱いで再接続する。
                     let _ = app.emit(
                         "heart-rate-status",
@@ -151,6 +199,10 @@ async fn start_heart_rate_monitor(
             reconnect_delay = next_reconnect_delay(reconnect_delay);
             tokio::time::sleep(reconnect_delay).await;
         }
+
+        // 自動停止でループを抜けた場合、共有状態には停止済みのセッションが残っている。
+        // 次回の開始や終了処理が古いハンドルを触らないよう、自分のセッションだけ取り除く。
+        clear_monitor_session(&app, session_id);
 
         // ユーザー停止でループを抜けたら、.arrowをParquetへ変換して読める状態で確定する。
         // アプリ終了経由で既にcloseされていてもclose()は冪等なので二重呼び出しは無害。
@@ -193,6 +245,24 @@ fn stop_current_monitor(state: &State<'_, HeartRateMonitorState>) {
         if let Some(current) = monitor.take() {
             let _ = current.stop_tx.send(true);
         }
+    }
+}
+
+// 指定したセッションが現在の監視セッションであれば、共有状態から取り除く。
+// 自動停止したタスクが片付けるためのもので、すでに別セッションが始まっている場合は何もしない。
+fn clear_monitor_session(app: &AppHandle, session_id: u64) {
+    let Some(state) = app.try_state::<HeartRateMonitorState>() else {
+        return;
+    };
+    // ロックのguardが`state`より長生きしないよう、束縛して宣言順を明示する。
+    let Ok(mut monitor) = state.monitor.lock() else {
+        return;
+    };
+    if monitor
+        .as_ref()
+        .is_some_and(|current| current.session_id == session_id)
+    {
+        monitor.take();
     }
 }
 

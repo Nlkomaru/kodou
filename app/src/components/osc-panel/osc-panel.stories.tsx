@@ -22,6 +22,7 @@ const OSC_SETTINGS: AppConfig["osc"] = {
   averageWindowMs: 10_000,
   beatPulseMs: 120,
   rrTwitchThresholdMs: 50,
+  disconnectTimeoutSecs: 60,
 };
 
 // 送信先とパラメータが設定済みの状態。
