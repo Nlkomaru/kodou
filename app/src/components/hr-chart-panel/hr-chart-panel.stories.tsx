@@ -46,6 +46,27 @@ export const Default: Story = {
   },
 };
 
+// BLEデータが20秒前で途切れたまま、壁時計の時間軸だけが進んでいる状態。
+// 実アプリではこの窓が毎秒更新され、空白区間が右へ広がっていく。
+const gapPoints = points.slice(-20);
+const gapEnd = gapPoints[gapPoints.length - 1].timestamp + 20_000;
+
+export const DataGap: Story = {
+  args: {
+    current: Math.round(values[values.length - 1]),
+    points: gapPoints,
+    timeDomain: { start: gapEnd - 60_000, end: gapEnd },
+    stats: {
+      max: `${Math.max(...values).toFixed(1)} bpm`,
+      min: `${Math.min(...values).toFixed(1)} bpm`,
+      avg: `${avg.toFixed(1)} bpm`,
+      avg5min: `${avg.toFixed(1)} bpm`,
+      rmssd: "40.8 ms",
+      hrv: "32 ms",
+    },
+  },
+};
+
 export const Empty: Story = {
   args: {
     current: null,
