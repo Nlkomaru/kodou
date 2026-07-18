@@ -23,6 +23,8 @@ futures = "0.3"
 rosc = "0.10"
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
+# アプリ再起動（更新適用後）に使う。
+tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["macros", "sync", "time"] }
@@ -39,6 +41,10 @@ hocon-parser = { version = "1", features = ["serde"] }
 # 記録ファイル名を「年月/年月日_連番」にするため、ローカル時刻の日付を使う。
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
+
+# 自動更新はデスクトップ（macOS/Windows/Linux）専用のため、対象プラットフォームに限定して依存させる。
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-updater = "2"
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]

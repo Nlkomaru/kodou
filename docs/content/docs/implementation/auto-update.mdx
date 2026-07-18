@@ -1,0 +1,51 @@
+---
+title: 自動アップデート
+description: Tauri Updater による署名付き自動更新と、GitHub Actions でのリリースフロー
+---
+
+Kodou は Tauri v2 の Updater プラグインを使い、GitHub Releases から署名付きの更新を配布します。
+
+## 全体の流れ
+
+1. release-drafter が作ったドラフトを公開すると `v*` タグが付き、`tauri-release.yml` が発火する。
+2. `tauri-action` が各プラットフォームのバンドルと更新用アーティファクト（`.sig` 付き）をビルドする。
+3. 同時に `latest.json` が生成され、そのリリースへ添付される。
+4. アプリは起動時に `latest.json` を取得し、現在のバージョンより新しければユーザーに通知する。
+
+## 設定
+
+`app/src-tauri/tauri.conf.json`:
+
+- `bundle.createUpdaterArtifacts: true` — 更新用アーティファクトと署名を生成する。これが無いと更新は一切動かない。
+- `plugins.updater.pubkey` — 署名検証用の公開鍵。
+- `plugins.updater.endpoints` — `https://github.com/Nlkomaru/kodou/releases/latest/download/latest.json`。
+  この URL は「ドラフトでも prerelease でもない最新リリース」を指すため、ワークフローでは
+  `releaseDraft: false` / `prerelease: false` を維持する必要がある。
+- `plugins.updater.windows.installMode: "passive"` — Windows では進捗のみを表示し、ユーザー操作を求めない。
+
+## 署名鍵
+
+更新パッケージの署名は無効化できません。鍵は `tauri signer generate` で作成し、
+以下の 2 つを GitHub Actions の Secrets に登録しています。
+
+| Secret | 用途 |
+| --- | --- |
+| `TAURI_SIGNING_PRIVATE_KEY` | 秘密鍵本体 |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 秘密鍵のパスワード |
+
+秘密鍵とパスワードを失うと以後の更新に署名できず、既存ユーザーへ更新を配信できなくなります。
+ローカルで更新用バンドルを作る場合も同じ環境変数が必要です。
+
+## アプリ側の挙動
+
+- `useAppUpdater` が起動時に一度だけ `check()` を呼ぶ。
+- 更新が見つかると `UpdateBanner` を画面上部に表示する。ダウンロードと適用はユーザーが
+  「今すぐ更新」を押したときだけ実行し、勝手に再起動はしない。
+- 適用後は「再起動して適用」ボタンから `relaunch()` する。
+- 更新確認に失敗しても心拍監視・記録・OSC 送信は継続する。
+
+## リリース手順
+
+1. `app/src-tauri/tauri.conf.json` と `app/package.json` のバージョンを上げる。
+2. main へマージし、release-drafter のドラフトを公開する。
+3. ビルド完了後、リリースに `latest.json` と各バンドル・`.sig` が添付されていることを確認する。

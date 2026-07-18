@@ -242,6 +242,8 @@ pub fn run() {
         .manage(HeartRateMonitorState::default())
         .manage(osc::OscState::default())
         .plugin(tauri_plugin_opener::init())
+        // 自動更新の適用後にアプリを再起動するためprocessプラグインを使う。
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             scan_heart_rate_monitors,
             start_heart_rate_monitor,
@@ -253,6 +255,11 @@ pub fn run() {
             config::save_config
         ])
         .setup(|app| {
+            // updaterはデスクトップ専用プラグインのため、デスクトップビルドでのみ登録する。
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
+
             // config.conf が未作成ならテンプレートを生成しておく。
             // 送信先の反映はフロントエンドがget_config_osc_targetsで読み出し、
             // GUIの送信先と統合してconfigure_oscを呼ぶ経路に一本化している。

@@ -59,6 +59,21 @@ jobs:
         with:
           ref: ${{ needs.resolve-tag.outputs.tag }}
 
+      # latest.json のバージョンはタグではなく tauri.conf.json の値から作られる。
+      # バージョンを上げ忘れたままタグを打つと、ビルドは成功するのに全クライアントが
+      # 「更新なし」と判定して更新が届かないため、ここで早期に落とす。
+      - name: Verify tag matches app version
+        shell: bash
+        env:
+          TAG: ${{ needs.resolve-tag.outputs.tag }}
+        run: |
+          config_version="$(jq -r .version app/src-tauri/tauri.conf.json)"
+          tag_version="${TAG#v}"
+          if [ "$config_version" != "$tag_version" ]; then
+            echo "tag $tag_version does not match tauri.conf.json version $config_version" >&2
+            exit 1
+          fi
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -118,6 +133,10 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 自動更新パッケージ(.sig)の署名に使う鍵。これが無いと updater 用アセットを
+          # 生成できずビルドが失敗するため、Secrets に必ず登録しておく。
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: app
           tagName: ${{ needs.resolve-tag.outputs.tag }}
