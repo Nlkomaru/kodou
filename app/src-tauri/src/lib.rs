@@ -153,7 +153,9 @@ async fn start_heart_rate_monitor(
             }
 
             // 切断が続いている時間を測り始める。すでに計測中ならその開始時刻を使う。
-            let elapsed = disconnected_since.get_or_insert_with(Instant::now).elapsed();
+            let elapsed = disconnected_since
+                .get_or_insert_with(Instant::now)
+                .elapsed();
 
             // 猶予を超えたら完全切断とみなし、再接続をあきらめてループを抜ける。
             // ループ後の記録確定・recording-stopped 通知はユーザー停止時と同じ経路を通る。
