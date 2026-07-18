@@ -176,7 +176,7 @@ export function HrChartPanel({
   );
 
   return (
-    <div className="flex min-w-0 flex-col rounded-xl bg-background p-4">
+    <div className="flex min-w-0 flex-col rounded-xl bg-background p-6">
       <Button
         type="button"
         variant="ghost"
