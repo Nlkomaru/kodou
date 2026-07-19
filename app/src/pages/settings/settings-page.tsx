@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Controls } from "./controls";
 import { DevicePicker } from "./device-picker";
-import { StatusMessage } from "@/components/status-message/status-message";
 
 export function SettingsPage() {
   return (
@@ -16,7 +15,6 @@ export function SettingsPage() {
         <CardContent className="flex flex-col gap-4">
           <DevicePicker />
           <Controls />
-          <StatusMessage />
         </CardContent>
       </Card>
     </div>

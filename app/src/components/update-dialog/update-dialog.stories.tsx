@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createStore, Provider } from "jotai";
 import type { UpdateInfo, UpdateStage } from "@/state/updater";
 import { updateErrorAtom, updateInfoAtom, updateProgressAtom, updateStageAtom } from "@/state/updater";
-import { UpdateBanner } from "./update-banner";
+import { UpdateDialog } from "./update-dialog";
 
-// UpdateBanner は updater 系 atom の表示だけを担うので、
+// UpdateDialog は updater 系 atom の表示だけを担うので、
 // ストーリーごとに段階を仕込んだ store を Provider で渡す。
 function makeStore(stage: UpdateStage, info: UpdateInfo | null, progress: number | null, error: string) {
   const store = createStore();
@@ -23,17 +23,18 @@ const readyStore = makeStore("ready", sampleInfo, 1, "");
 const errorStore = makeStore("error", sampleInfo, null, "ダウンロードに失敗しました: network error");
 
 const meta = {
-  title: "App/UpdateBanner",
-  component: UpdateBanner,
+  title: "App/UpdateDialog",
+  component: UpdateDialog,
   parameters: {
-    layout: "padded",
+    // モーダルは画面全面に出るため、余白のない fullscreen で確認する。
+    layout: "fullscreen",
   },
   args: {
     onInstall: () => {},
     onRestart: () => {},
     onDismiss: () => {},
   },
-} satisfies Meta<typeof UpdateBanner>;
+} satisfies Meta<typeof UpdateDialog>;
 
 export default meta;
 

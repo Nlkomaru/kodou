@@ -5,7 +5,6 @@ import { computeSdnn, computeStats, getWallClockTimeDomain, pointsWithinWindow }
 import { useWallClockNow } from "@/hooks/use-wall-clock-now";
 import type { MetricPoint } from "@/lib/heart-rate-types";
 import { bpmHistoryAtom, heartRateStatsAtom, readingAtom, rrHistoryAtom, statsWindowMsAtom } from "@/state/heart-rate";
-import { StatusMessage } from "@/components/status-message/status-message";
 
 const FIVE_MINUTES_MS = 5 * 60_000;
 
@@ -73,7 +72,6 @@ export function DashboardPage() {
       <DataHeader bpm={reading?.bpm ?? null} rrMs={latestRr != null ? Math.round(latestRr) : null} />
       <HrChartPanel title="HR" unit="bpm" current={reading?.bpm ?? null} points={bpmHistory} stats={hrStats} timeDomain={timeDomain} />
       <HrChartPanel title="RR-interval" unit="ms" current={latestRr} points={rrHistory} stats={rrStats} color="#0090FF" smooth={false} timeDomain={timeDomain} />
-      <StatusMessage />
     </div>
   );
 }

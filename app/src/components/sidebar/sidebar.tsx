@@ -54,8 +54,8 @@ export function Sidebar({
   return (
     <div className="flex h-full w-[280px] flex-col justify-between border-r border-border bg-background px-4 py-6">
       <div className="flex flex-col gap-4">
-        {/* Logo */}
-        <div className="flex items-center gap-4 px-2">
+        {/* Logo: 下のナビゲーションと同じ px-4 の内側余白に揃える。 */}
+        <div className="flex items-center gap-4 px-4">
           <img
             src={kodouLogo}
             alt="Kodou"
@@ -67,8 +67,8 @@ export function Sidebar({
           </div>
         </div>
 
-        {/* Status */}
-        <div className="p-2">
+        {/* Status: ナビゲーション項目と横幅・左端を揃えるため、外側の余白は付けない。 */}
+        <div>
           {(() => {
             const isConnected = status === "接続済み";
             const isTransitional = status.includes("中");
@@ -124,7 +124,7 @@ export function Sidebar({
       </div>
 
       {/* Bottom stats */}
-      <div className="flex w-full flex-col gap-2 border-t border-border px-2 pt-[13px]">
+      <div className="flex w-full flex-col gap-2 border-t border-border px-4 pt-[13px]">
         <StatRow icon={Battery} label="バッテリー" value={battery} />
         <StatRow icon={Wifi} label="センサー接触" value={sensorContact} />
         <StatRow icon={Zap} label="消費エネルギー" value={energy} />
