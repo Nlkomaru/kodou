@@ -33,7 +33,7 @@ React 側へイベントとして心拍データを流します。
 
 - `scan_heart_rate_monitors` command でデバイス一覧を取得する。
 - `start_heart_rate_monitor` command で選択デバイスの購読を開始する。
-- `heart-rate-status` イベントで接続状態を表示する。
+- `heart-rate-status` イベントで接続状態を表示する。常設の表示はサイドバー、状態の変化は `useStatusToast`（sonner のトースト）で通知する。トーストは ID を固定しているため、状態が変わっても積み上がらず同じトーストが差し替わる。
 - `heart-rate-reading` イベントでBPM、RR interval、battery、sensor contactを更新する。
 
 ## 5. 記録
