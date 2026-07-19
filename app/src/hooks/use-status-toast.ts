@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useAtomValue } from "jotai";
 import { toast } from "sonner";
-import { connectionStatusVariantAtom, errorAtom, statusAtom } from "@/state/heart-rate";
+import { connectionStatusVariantAtom, disconnectedStatus, errorAtom, statusAtom } from "@/state/heart-rate";
 
 // 接続状態の更新をトーストで通知する。常設の状態表示はサイドバーが担うため、
 // ここでは「変化したこと」だけを一時的に知らせる。
@@ -16,6 +16,9 @@ export function useStatusToast() {
   const error = useAtomValue(errorAtom);
 
   useEffect(() => {
+    // 起動直後の初期値（未接続）は「変化」ではないため通知しない。
+    // 同一オブジェクトかどうかで判定できるのは、以後のstatusが必ず新しい値になるため。
+    if (status === disconnectedStatus) return;
     if (!status.message) return;
     if (variant === "destructive") {
       toast.error(status.message, { id: STATUS_TOAST_ID });
