@@ -4,6 +4,7 @@ import { Bluetooth, Radio, Square } from "lucide-react";
 import { Button } from "@fluentui/react-components";
 import { isTauriRuntime } from "@/lib/heart-rate";
 import { saveLastDevice } from "@/lib/last-device";
+import { saveMonitorStopped } from "@/lib/startup";
 import type { HeartRateDevice } from "@/lib/heart-rate-types";
 import {
   clearReadingAtom,
@@ -78,6 +79,8 @@ export function Controls() {
       await invoke("start_heart_rate_monitor", {
         deviceId: selectedDeviceId,
       });
+      // 開始が成功したときだけ停止状態を解除し、次回起動時に復元できるようにする。
+      saveMonitorStopped(false);
       // 次回起動時の自動再接続先として、接続を開始できたデバイスを覚えておく。
       if (selectedDevice) {
         saveLastDevice(selectedDevice);
@@ -96,6 +99,8 @@ export function Controls() {
     setError("");
     try {
       await invoke("stop_heart_rate_monitor");
+      // デバイスの記憶は残したまま停止を保存し、次回は設定に従って自動接続を抑止する。
+      saveMonitorStopped(true);
       setStatus({
         state: "disconnected",
         message: "心拍モニタリングを停止しました。",
