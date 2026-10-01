@@ -26,9 +26,11 @@ Kodou は Tauri v2 の Updater プラグインを使い、GitHub Releases から
 ## 署名鍵
 
 更新パッケージの署名は無効化できません。鍵は `tauri signer generate` で作成し、
-以下の 2 つを GitHub Actions の Secrets に登録しています。
+Bitwarden Secrets Manager に保存しています。リリースワークフローは `bitwarden/sm-action@v3.0.1` で取得し、
+以下の環境変数へ設定します。v3 は macOS ARM を含む各ランナー向けバイナリを使用し、
+v2 の macOS ARM 用 SDK 依存が欠ける問題を回避します。
 
-| Secret | 用途 |
+| 環境変数 | 用途 |
 | --- | --- |
 | `TAURI_SIGNING_PRIVATE_KEY` | 秘密鍵本体 |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 秘密鍵のパスワード |

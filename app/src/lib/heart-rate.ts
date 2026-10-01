@@ -3,13 +3,15 @@ import type { HeartRateStats, MetricPoint, TimeDomain } from "./heart-rate-types
 export const HISTORY_LIMIT = 96;
 export const CHART_WINDOW_MS = 60_000;
 
-// チャート表示と保持する状態がずれないように、直近1分の範囲だけ残す。
+// 過去にさかのぼるRR通知も時刻順に統合し、直近1分のうち新しい点から上限数を保持する。
 export function appendHistory(current: MetricPoint[], next: MetricPoint[]) {
   const combined = [...current, ...next];
   const newestTimestamp = Math.max(...combined.map((point) => point.timestamp));
 
   return combined
     .filter((point) => point.timestamp >= newestTimestamp - CHART_WINDOW_MS)
+    // 受信順のままだとRRの折れ線が過去へ折り返すため、件数を制限する前に時刻で並べる。
+    .sort((left, right) => left.timestamp - right.timestamp)
     .slice(-HISTORY_LIMIT);
 }
 
