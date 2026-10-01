@@ -44,13 +44,6 @@ export function getWallClockTimeDomain(now: number): TimeDomain {
   };
 }
 
-// 指定した時間範囲に収まる点だけを返す。
-// 履歴は「最新データ基準」で間引かれているため、受信が途切れると
-// 壁時計の窓から外れた古い点が残る。描画前にここで落とす。
-export function pointsWithinDomain(points: MetricPoint[], domain: TimeDomain): MetricPoint[] {
-  return points.filter((point) => point.timestamp >= domain.start && point.timestamp <= domain.end);
-}
-
 export function formatTime(timestamp: number) {
   return new Intl.DateTimeFormat("ja-JP", {
     hour: "2-digit",

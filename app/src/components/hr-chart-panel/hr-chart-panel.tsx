@@ -1,16 +1,26 @@
 import { useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Button, makeStyles, mergeClasses } from "@fluentui/react-components";
-import { formatTime, pointsWithinDomain } from "@/lib/heart-rate";
+import { formatTime } from "@/lib/heart-rate";
 import type { MetricPoint, TimeDomain } from "@/lib/heart-rate-types";
 
 const CHART_WIDTH = 720;
 const CHART_HEIGHT = 120;
-const CHART_PADDING = { top: 10, right: 8, bottom: 22, left: 28 };
+// 左はY軸ラベル、右は時刻ラベルがSVGの外へはみ出さないためのガター。
+// 左右を同じ幅にすることで、ヘッダー・統計の左右余白とも揃えられる。
+const PLOT_GUTTER_X = 30;
+const CHART_PADDING = { top: 10, right: PLOT_GUTTER_X, bottom: 22, left: PLOT_GUTTER_X };
+const PLOT_WIDTH = CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right;
+const PLOT_HEIGHT = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
+const PLOT_BASELINE_Y = CHART_HEIGHT - CHART_PADDING.bottom;
 const X_TICK_INTERVAL_MS = 10_000;
-// この時間より長くデータが来ていなければ「データなし」区間として描く。
-// BLE通知はおよそ1秒間隔なので、通常の揺らぎを空白と誤認しない程度に余裕を持たせる。
-const GAP_THRESHOLD_MS = 3_000;
+// 端の時刻ラベルがSVGからはみ出さないかを判定するための概算文字幅(6pxフォントの数字とコロン)。
+const LABEL_CHAR_WIDTH = 3.6;
+// プロットの左右ガターを割合で表し、ヘッダーと統計の余白をどの表示幅でもプロットの端に合わせる。
+const GUTTER_PERCENT = `${((PLOT_GUTTER_X / CHART_WIDTH) * 100).toFixed(4)}%`;
+// 境界をまたぐ曲線区間は窓外2点を参照し、その各値の平滑化にさらに2点必要になる。
+// この4点を残すことで、時間窓が次のサンプルへ進んでも境界付近の値と傾きを保つ。
+const BOUNDARY_NEIGHBOR_RADIUS = 4;
 
 // 見出し行は幅いっぱいのクリック領域にしたいが、Fluent Button は中央寄せ・最小幅・既定パディングを持つ。
 // Fluent のスタイルは CSS レイヤーの外に注入されるため Tailwind の utilities では打ち消せず、makeStyles を使う。
@@ -20,11 +30,17 @@ const useStyles = makeStyles({
     height: "auto",
     minWidth: 0,
     justifyContent: "space-between",
-    padding: "0 6px",
+    // グラフのプロット左端と同じ位置にタイトルと現在値を揃える。
+    padding: `0 ${GUTTER_PERCENT}`,
   },
   // 展開時だけ下に余白を作り、グラフとの間隔を確保する。
   headerButtonExpanded: {
     paddingBottom: "12px",
+  },
+  // 統計もプロットと同じガターに合わせる。
+  statsGrid: {
+    paddingLeft: GUTTER_PERCENT,
+    paddingRight: GUTTER_PERCENT,
   },
 });
 
@@ -47,7 +63,7 @@ type HrChartPanelProps = {
   smooth?: boolean;
   /**
    * X軸に使う時間範囲。壁時計基準の窓を渡すと、データが途切れても軸が流れ続け、
-   * 受信できていない区間が空白として表示される。
+   * 受信できていない区間は塗りも文字も置かない空白になる。
    * 省略した場合はデータの実測範囲を使う(静的な表示・Storybook向け)。
    */
   timeDomain?: TimeDomain;
@@ -84,7 +100,28 @@ function smoothValues(points: MetricPoint[]): MetricPoint[] {
   });
 }
 
-// 折れ線をCatmull-Romスプライン相当の3次ベジェに変換して、角のない滑らかな曲線にする。
+// 時間窓の内側の点に、平滑化・スプラインの端点計算に必要な前後の隣接サンプルだけを加えて返す。
+// 窓外の点を含むパスも、表示はクリップ矩形の内側だけに限定する。
+function selectWindowPoints(points: MetricPoint[], neighborRadius: number, timeDomain?: TimeDomain): MetricPoint[] {
+  if (!timeDomain || points.length === 0) return points;
+
+  let firstInside = -1;
+  let lastInside = -1;
+  for (let index = 0; index < points.length; index += 1) {
+    const { timestamp } = points[index];
+    if (timestamp < timeDomain.start || timestamp > timeDomain.end) continue;
+    if (firstInside === -1) firstInside = index;
+    lastInside = index;
+  }
+
+  // 最後のデータも左へ流れ去ったら、描画用の隣接点は不要になる。
+  if (firstInside === -1) return [];
+
+  const from = Math.max(0, firstInside - neighborRadius);
+  const to = Math.min(points.length - 1, lastInside + neighborRadius);
+  return to < from ? [] : points.slice(from, to + 1);
+}
+
 // 折れ線をCatmull-Romスプライン相当の3次ベジェに変換して、角のない滑らかな曲線にする。
 function smoothPath(coords: [number, number][]) {
   if (coords.length === 0) return "";
@@ -119,14 +156,29 @@ function linePath(coords: [number, number][]) {
   return path;
 }
 
+// 10秒刻みの切りのよい時刻に目盛りを置く。データの有無にかかわらず壁時計の窓から算出する。
+function buildTimeTicks(start: number, end: number): number[] {
+  const firstTick = Math.ceil(start / X_TICK_INTERVAL_MS) * X_TICK_INTERVAL_MS;
+  const ticks: number[] = [];
+  for (let tick = firstTick; tick <= end; tick += X_TICK_INTERVAL_MS) {
+    ticks.push(tick);
+  }
+  return ticks;
+}
+
 function chartGeometry(rawPoints: MetricPoint[], smooth = true, timeDomain?: TimeDomain) {
-  // 壁時計の窓が指定されている場合、その外側の点は描画対象から外す。
-  // 受信が途切れると履歴には窓の外の古い点が残り、そのまま描くと軸からはみ出す。
-  const visiblePoints = timeDomain ? pointsWithinDomain(rawPoints, timeDomain) : rawPoints;
-  const points = smoothValues(visiblePoints);
-  const plotWidth = CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right;
-  const plotHeight = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
-  const values = points.map((point) => point.value);
+  // 描画に使う点は窓の内外にまたがる。窓の中の点だけを平滑化・補間すると端が途切れて跳ねるため、
+  // 隣接サンプルを残しておき、見せる範囲はクリップ矩形で切る。パスは隣接分しか伸びない。
+  const windowPoints = selectWindowPoints(rawPoints, smooth ? BOUNDARY_NEIGHBOR_RADIUS : 1, timeDomain);
+  // smooth=false は生の値で描く。平滑化は曲線補間の有無とは独立した見た目のオプション。
+  const points = smooth ? smoothValues(windowPoints) : windowPoints;
+  // 目盛りや値域は窓の中で実際に見える点だけから決め、端の隣接サンプルに引きずられないようにする。
+  const visiblePoints = timeDomain
+    ? points.filter((point) => point.timestamp >= timeDomain.start && point.timestamp <= timeDomain.end)
+    : points;
+  const hasPoints = visiblePoints.length > 0;
+
+  const values = visiblePoints.map((point) => point.value);
   const minValue = values.length > 0 ? Math.min(...values) : 0;
   const maxValue = values.length > 0 ? Math.max(...values) : 1;
   const range = Math.max(maxValue - minValue, 1);
@@ -139,38 +191,22 @@ function chartGeometry(rawPoints: MetricPoint[], smooth = true, timeDomain?: Tim
   const end = timeDomain ? timeDomain.end : points.length > 0 ? points[points.length - 1].timestamp : 1;
   const timeRange = Math.max(end - start, 1);
 
-  const xFor = (timestamp: number) => CHART_PADDING.left + ((timestamp - start) / timeRange) * plotWidth;
-  const yFor = (value: number) => CHART_PADDING.top + (1 - (value - chartMin) / chartRange) * plotHeight;
-  const path = smooth
-    ? smoothPath(points.map((point) => [xFor(point.timestamp), yFor(point.value)]))
-    : linePath(points.map((point) => [xFor(point.timestamp), yFor(point.value)]));
-  const baselineY = CHART_HEIGHT - CHART_PADDING.bottom;
-  // 塗りつぶしは軸の端ではなく、実データがある区間だけを閉じる。
-  // 軸の端まで閉じると、データが無い区間まで塗られてしまう。
+  const xFor = (timestamp: number) => CHART_PADDING.left + ((timestamp - start) / timeRange) * PLOT_WIDTH;
+  const yFor = (value: number) => CHART_PADDING.top + (1 - (value - chartMin) / chartRange) * PLOT_HEIGHT;
+  const coords = points.map((point) => [xFor(point.timestamp), yFor(point.value)] as [number, number]);
+  const path = hasPoints ? (smooth ? smoothPath(coords) : linePath(coords)) : "";
+  // 塗りつぶしは実データのある区間の両端で閉じる。端が窓の外ならクリップされ、
+  // 窓の内側で途切れているならそこで閉じるため、データの無い側は塗られない。
   const dataStart = points.length > 0 ? points[0].timestamp : start;
   const dataEnd = points.length > 0 ? points[points.length - 1].timestamp : end;
-  const areaPath =
-    points.length > 0
-      ? `${path} L ${xFor(dataEnd).toFixed(2)} ${baselineY} L ${xFor(dataStart).toFixed(2)} ${baselineY} Z`
-      : "";
-  const gridValues = points.length > 0 ? [chartMax, Math.round((chartMax + chartMin) / 2), chartMin] : [];
-  // 時間軸はデータ点の間引きではなく、10秒刻みの切りのよい時刻に目盛りを置く。
-  const timeTicks: number[] = [];
-  if (points.length > 0) {
-    const firstTick = Math.ceil(start / X_TICK_INTERVAL_MS) * X_TICK_INTERVAL_MS;
-    for (let tick = firstTick; tick <= end; tick += X_TICK_INTERVAL_MS) {
-      timeTicks.push(tick);
-    }
-  }
+  const areaPath = hasPoints
+    ? `${path} L ${xFor(dataEnd).toFixed(2)} ${PLOT_BASELINE_Y} L ${xFor(dataStart).toFixed(2)} ${PLOT_BASELINE_Y} Z`
+    : "";
+  const gridValues = hasPoints ? [chartMax, Math.round((chartMax + chartMin) / 2), chartMin] : [];
+  // 時刻目盛りはデータが無くても壁時計の窓から作るため、待機中も軸は流れ続ける。
+  const timeTicks = timeDomain || hasPoints ? buildTimeTicks(start, end) : [];
 
-  // 最新データから軸の右端までが空いていれば、そこを「データなし」区間として描く。
-  // 通常のBLE通知間隔(約1秒)の揺らぎを空白と見せないよう、しきい値を超えた場合だけ扱う。
-  const gap =
-    timeDomain && points.length > 0 && end - dataEnd > GAP_THRESHOLD_MS
-      ? { fromX: xFor(dataEnd), toX: xFor(end), sinceMs: end - dataEnd }
-      : null;
-
-  return { areaPath, baselineY, gap, gridValues, hasPoints: points.length > 0, path, timeTicks, xFor, yFor };
+  return { areaPath, gridValues, hasPoints, path, timeTicks, xFor, yFor };
 }
 
 export function HrChartPanel({
@@ -179,21 +215,19 @@ export function HrChartPanel({
   current,
   points,
   stats,
-  color = "#dc3e42",
+  // テーマのチャート色トークン。未定義の環境(Storybookなど)では従来色にフォールバックする。
+  color = "var(--chart-hr, #dc3e42)",
   smooth = true,
   timeDomain,
 }: HrChartPanelProps) {
   const gradientId = useId();
+  const clipId = useId();
   const styles = useStyles();
   const [expanded, setExpanded] = useState(true);
-  const { areaPath, baselineY, gap, gridValues, hasPoints, path, timeTicks, xFor, yFor } = chartGeometry(
-    points,
-    smooth,
-    timeDomain,
-  );
+  const { areaPath, gridValues, hasPoints, path, timeTicks, xFor, yFor } = chartGeometry(points, smooth, timeDomain);
 
   return (
-    <div className="flex min-w-0 flex-col rounded-xl bg-background p-6">
+    <div className="flex min-w-0 flex-col overflow-hidden rounded-xl bg-background p-6">
       <Button
         appearance="transparent"
         className={mergeClasses(styles.headerButton, expanded && styles.headerButtonExpanded)}
@@ -213,89 +247,80 @@ export function HrChartPanel({
         </span>
       </Button>
       {expanded && (
-      <svg
-        className="block h-auto w-full"
-        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-        role="img"
-        aria-label={`${title}のリアルタイムグラフ`}
-      >
-        <defs>
-          <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.2" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {hasPoints ? (
-          <>
-            {gridValues.map((value) => (
-              <text
-                key={value}
-                className="fill-muted-foreground text-[6px]"
-                x={CHART_PADDING.left - 6}
-                y={yFor(value) + 3}
-                textAnchor="end"
-              >
-                {value}
-              </text>
-            ))}
-            {timeTicks.map((tick) => (
+        <svg
+          className="block h-auto w-full"
+          viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+          role="img"
+          aria-label={`${title}のリアルタイムグラフ`}
+        >
+          <defs>
+            <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+              {/* stroke/stop-color の属性は var() を解決しないため CSS プロパティとして渡す。 */}
+              <stop offset="0%" style={{ stopColor: color }} stopOpacity="0.2" />
+              <stop offset="100%" style={{ stopColor: color }} stopOpacity="0" />
+            </linearGradient>
+            {/* 描画は常にこの固定の矩形で切るため、窓が進んでも線の切れ端が跳ねない。 */}
+            <clipPath id={clipId}>
+              <rect
+                x={CHART_PADDING.left}
+                y={CHART_PADDING.top}
+                width={PLOT_WIDTH}
+                height={PLOT_HEIGHT}
+              />
+            </clipPath>
+          </defs>
+          {hasPoints && (
+            <>
+              {gridValues.map((value, index) => (
+                <text
+                  key={`${value}-${index}`}
+                  className="fill-muted-foreground text-[6px]"
+                  x={CHART_PADDING.left - 6}
+                  y={yFor(value) + 3}
+                  textAnchor="end"
+                >
+                  {value}
+                </text>
+              ))}
+              <g clipPath={`url(#${clipId})`}>
+                <path d={areaPath} fill={`url(#${gradientId})`} />
+                <path
+                  className={
+                    smooth
+                      ? "fill-none stroke-[0.5] [stroke-linecap:round] [stroke-linejoin:round]"
+                      : "fill-none stroke-[0.7]"
+                  }
+                  d={path}
+                  style={{ stroke: color }}
+                />
+              </g>
+            </>
+          )}
+          {timeTicks.map((tick) => {
+            const centerX = xFor(tick);
+            const label = formatTime(tick);
+            // 中央寄せのラベルがSVGの左右端からはみ出す目盛りは描かない。
+            // 右側にもガターを確保してあるため、通常はすべて収まる。
+            const halfWidth = (label.length * LABEL_CHAR_WIDTH) / 2;
+            if (centerX - halfWidth < 0 || centerX + halfWidth > CHART_WIDTH) return null;
+            return (
               <text
                 key={tick}
                 className="fill-muted-foreground text-[6px]"
-                x={xFor(tick)}
-                y={baselineY + 14}
+                x={centerX}
+                y={PLOT_BASELINE_Y + 14}
                 textAnchor="middle"
               >
-                {formatTime(tick)}
+                {label}
               </text>
-            ))}
-            <path d={areaPath} fill={`url(#${gradientId})`} />
-            <path
-              className={smooth ? "fill-none stroke-[0.5] [stroke-linecap:round] [stroke-linejoin:round]" : "fill-none stroke-[0.7]"}
-              d={path}
-              stroke={color}
-            />
-            {/* データが来ていない区間。線が途切れているだけだと「止まっている」ように見えるため、
-                帯とラベルで受信できていないことを明示する。 */}
-            {gap && (
-              <>
-                <rect
-                  className="fill-muted-foreground/10"
-                  x={gap.fromX}
-                  y={CHART_PADDING.top}
-                  width={Math.max(gap.toX - gap.fromX, 0)}
-                  height={baselineY - CHART_PADDING.top}
-                />
-                {/* 帯が狭いとラベルがはみ出して読めないため、十分な幅があるときだけ出す。 */}
-                {gap.toX - gap.fromX > 60 && (
-                  <text
-                    className="fill-muted-foreground text-[7px]"
-                    x={(gap.fromX + gap.toX) / 2}
-                    y={CHART_PADDING.top + 12}
-                    textAnchor="middle"
-                  >
-                    データ待機中 ({Math.round(gap.sinceMs / 1000)}秒)
-                  </text>
-                )}
-              </>
-            )}
-          </>
-        ) : (
-          <text
-            className="fill-muted-foreground text-[13px] font-medium"
-            x={CHART_WIDTH / 2}
-            y={CHART_HEIGHT / 2}
-            textAnchor="middle"
-          >
-            データ待機中
-          </text>
-        )}
-      </svg>
+            );
+          })}
+        </svg>
       )}
       {expanded && (
-        <div className="grid grid-cols-3 gap-x-4 gap-y-2 pt-3 px-8">
+        <div className={mergeClasses("grid grid-cols-3 gap-x-4 gap-y-2 pt-3", styles.statsGrid)}>
           {STAT_LABELS.map(({ key, label }) => (
-            <div key={key} className="flex flex-col gap-0.5">
+            <div key={key} className="flex min-w-0 flex-col gap-0.5">
               <span className="text-sm text-secondary-foreground">{label}</span>
               <span className="text-base font-medium text-foreground">{stats[key] ?? "--"}</span>
             </div>

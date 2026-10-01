@@ -39,10 +39,22 @@
   --chart-3: #8764b8;
   --chart-4: #ca5010;
   --chart-5: #c239b3;
+  /* テーマの独自トークンはポータルにも渡され、入れ子のテーマも独立して解決できる。 */
+  --chart-hr: var(--chartHr);
+  --chart-rr: var(--chartRr);
+  color-scheme: var(--themeScheme);
   --status-connected-bg: var(--colorPaletteGreenBackground1);
   --status-connected-fg: var(--colorPaletteGreenForeground1);
   --status-connected-dot: var(--colorPaletteGreenForeground1);
 }
+
+/* Fluent はクラスをポータルにもコピーするため、全画面の背景と高さは通常のルートだけに適用する。 */
+.fui-FluentProvider.kodou-theme-root:not([data-portal-node]) {
+  min-height: 100vh;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
 
 @theme inline {
   --font-sans: "Segoe UI", "Yu Gothic UI", Meiryo, sans-serif;

@@ -39,8 +39,8 @@ React 側へイベントとして心拍データを流します。
 ### UI とテーマ
 
 - 操作部品には Fluent UI React v9（`@fluentui/react-components`）を使用します。
-- アプリと Storybook は `FluentProvider` と `app/src/lib/theme.ts` のライトテーマを共有します。フォントは Windows の Segoe UI と Yu Gothic UI を優先します。
-- Tailwind CSS はレイアウトに使用し、画面・グラフ用の色は `app/src/index.css` で Fluent のテーマトークンに接続します。アイコンには引き続き lucide-react を使用します。
+- アプリと Storybook は `ThemeProvider` と `app/src/lib/theme.ts` のライト／ダークテーマを共有します。既定は OS の設定に追従するシステム配色で、設定画面の選択は Jotai とローカルストレージで保持します。フォントは Windows の Segoe UI と Yu Gothic UI を優先します。
+- Tailwind CSS はレイアウトに使用し、画面・グラフ用の色は `app/src/index.css` で Fluent のテーマトークンに接続します。グラフ色とネイティブ部品の配色もテーマトークンに含め、入れ子のテーマやポータルでも同じ配色を適用します。アイコンには引き続き lucide-react を使用します。
 - 接続通知は `useNotification` が表示中のトーストを更新します。通知が消えた後は、新しい ID で表示して消去アニメーション中の通知との衝突を避けます。
 - UI の変更は `pnpm --dir app build` と `pnpm --dir app build-storybook` でビルドし、Storybook で入力・選択・通知・更新ダイアログを確認します。
 - Storybook 10.5.0 の `HTMLElement.prototype.focus` フックは、Fluent UI の keyborg がプロトタイプからメソッドを取得するときに `Illegal invocation` を発生させます。`patches/storybook@10.5.0.patch` でプロトタイプへのアクセスだけを補正し、通常の要素のフォーカス処理やクリップボード機能は維持しています。Storybook 更新時はこのパッチの必要性を確認してください。
