@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { invoke } from "@tauri-apps/api/core";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardHeader, Divider, Text } from "@fluentui/react-components";
 import type { AppConfig, OscParamKey, OscSettings } from "@/lib/osc";
 import { oscAddressesAtom, oscConfigAtom, oscEnabledAtom, oscSettingsAtom, oscTargetsAtom } from "@/state/osc";
 import { OscEnableToggle } from "./osc-enable-toggle";
@@ -73,35 +72,35 @@ export function OscPanel() {
   };
 
   return (
-    <Card className="shadow-none">
-      <CardHeader>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <CardTitle className="text-base">OSC送信</CardTitle>
-            <CardDescription className="mt-1">VRChatのAvatar Parameter OSCへ心拍データを送ります</CardDescription>
-          </div>
-          <OscEnableToggle checked={enabled} onCheckedChange={setEnabled} />
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <Card appearance="outline" size="large">
+      <CardHeader
+        header={
+          <Text size={400} weight="semibold">
+            OSC送信
+          </Text>
+        }
+        description={<Text size={200}>VRChatのAvatar Parameter OSCへ心拍データを送ります</Text>}
+        action={<OscEnableToggle checked={enabled} onCheckedChange={setEnabled} />}
+      />
+      <div className="flex flex-col gap-4">
         <OscTargetList
           targets={targets}
           onAdd={(target) => patchOsc({ targets: [...targets, target] })}
           onRemove={(target) => patchOsc({ targets: targets.filter((t) => t !== target) })}
         />
 
-        <Separator />
+        <Divider />
 
         <OscNumericSettings settings={settings} onChange={handleSettingChange} />
 
-        <Separator />
+        <Divider />
 
         <OscFloatModeSelect
           value={settings.hrFloatMode}
           onChange={(mode) => patchOsc({ hrFloatMode: mode })}
         />
 
-        <Separator />
+        <Divider />
 
         <OscParamAddressList
           addresses={addresses}
@@ -110,7 +109,7 @@ export function OscPanel() {
             patchAddresses(key, (addresses[key] ?? []).filter((a) => a !== address))
           }
         />
-      </CardContent>
+      </div>
     </Card>
   );
 }

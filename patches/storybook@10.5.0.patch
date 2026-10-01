@@ -1,0 +1,26 @@
+diff --git a/dist/csf/index.js b/dist/csf/index.js
+index 2871585363338d578b9ace1acb146c8eadacf9f0..62f31d083f08c3df6e99862f994dad5e1e3a44ee 100644
+--- a/dist/csf/index.js
++++ b/dist/csf/index.js
+@@ -1926,6 +1926,8 @@ var resetAllMocksLoader = ({ parameters: parameters2 }) => {
+             currentFocus = newFocus;
+           },
+           get() {
++            // Fluent UI/keyborg reads the prototype method without an element receiver.
++            if (this === HTMLElement.prototype) return currentFocus;
+             return this.ownerDocument?.defaultView ? focusingElements.has(this) ? originalFocus : (focusingElements.add(this), setTimeout(() => focusingElements.delete(this), 0), currentFocus) : noopFocus;
+           }
+         }
+diff --git a/dist/preview/runtime.js b/dist/preview/runtime.js
+index fde2620a09de4547affa5b5cf27b99fe50c008f2..2307d57da60995693955becffca9eead8f318128 100644
+--- a/dist/preview/runtime.js
++++ b/dist/preview/runtime.js
+@@ -34250,6 +34250,8 @@ var resetAllMocksLoader = ({ parameters: parameters2 }) => {
+             currentFocus = newFocus;
+           },
+           get() {
++            // Fluent UI/keyborg reads the prototype method without an element receiver.
++            if (this === HTMLElement.prototype) return currentFocus;
+             return this.ownerDocument?.defaultView ? focusingElements.has(this) ? originalFocus : (focusingElements.add(this), setTimeout(() => focusingElements.delete(this), 0), currentFocus) : noopFocus;
+           }
+         }

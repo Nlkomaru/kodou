@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useAtomValue, useSetAtom } from "jotai";
 import { Bluetooth, Radio, Square } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@fluentui/react-components";
 import { isTauriRuntime } from "@/lib/heart-rate";
 import { saveLastDevice } from "@/lib/last-device";
 import type { HeartRateDevice } from "@/lib/heart-rate-types";
@@ -108,16 +108,31 @@ export function Controls() {
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Button className="h-10 font-bold" type="button" onClick={scanDevices} disabled={status.state === "scanning" || status.state === "connecting"}>
-        <Radio aria-hidden="true" />
+      <Button
+        appearance="primary"
+        size="large"
+        icon={<Radio className="size-4" aria-hidden="true" />}
+        onClick={scanDevices}
+        disabled={status.state === "scanning" || status.state === "connecting"}
+      >
         {status.state === "scanning" ? "検索中..." : "スキャン"}
       </Button>
-      <Button className="h-10 font-bold" type="button" onClick={startMonitor} disabled={!selectedDeviceId || status.state === "connecting" || status.state === "scanning"}>
-        <Bluetooth aria-hidden="true" />
+      <Button
+        appearance="primary"
+        size="large"
+        icon={<Bluetooth className="size-4" aria-hidden="true" />}
+        onClick={startMonitor}
+        disabled={!selectedDeviceId || status.state === "connecting" || status.state === "scanning"}
+      >
         {status.state === "connecting" ? "接続中..." : status.state === "connected" ? "再接続" : "接続"}
       </Button>
-      <Button className="h-10 font-bold" type="button" variant="secondary" onClick={stopMonitor} disabled={!selectedDeviceId}>
-        <Square aria-hidden="true" />
+      <Button
+        appearance="secondary"
+        size="large"
+        icon={<Square className="size-4" aria-hidden="true" />}
+        onClick={stopMonitor}
+        disabled={!selectedDeviceId}
+      >
         停止
       </Button>
     </div>

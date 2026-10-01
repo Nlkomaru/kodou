@@ -1,6 +1,5 @@
 import { ChartColumn, Circle, FileText, FolderOpen } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge, Button } from "@fluentui/react-components";
 import type { RecordingFile } from "@/lib/heart-rate-types";
 import {
   formatBpm,
@@ -89,18 +88,23 @@ function RecordingRow({ recording, isRecording, onReveal }: RecordingRowProps) {
           </dl>
         )}
         {isRecording && (
-          <Badge variant="secondary" className="gap-1.5">
+          <Badge
+            appearance="tint"
+            color="subtle"
+            shape="circular"
+            size="medium"
+            className="gap-1.5"
+          >
             <Circle className="size-2 animate-pulse fill-red-500 text-red-500" aria-hidden="true" />
             記録中
           </Badge>
         )}
         <Button
-          variant="outline"
-          size="sm"
+          appearance="outline"
+          icon={<FolderOpen className="size-4" aria-hidden="true" />}
           onClick={() => onReveal(recording.path)}
           title={recording.path}
         >
-          <FolderOpen aria-hidden="true" />
           フォルダで開く
         </Button>
       </div>

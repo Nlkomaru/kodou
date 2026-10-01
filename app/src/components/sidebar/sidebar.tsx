@@ -2,14 +2,13 @@ import {
   Activity,
   Battery,
   ChartColumn,
-  ChevronRight,
   Radio,
   Settings,
   Wifi,
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Tab, TabList } from "@fluentui/react-components";
 import kodouLogo from "@/assets/kodou-logo.png";
 
 export interface SidebarNavItem {
@@ -95,32 +94,28 @@ export function Sidebar({
           })()}
         </div>
 
-        {/* Navigation */}
-        <nav className="flex flex-col gap-0.5">
+        {/* Navigation: 全幅・左寄せのリストは Fluent の縦向き TabList がそのまま担う。
+            選択状態・フォーカス移動は Fluent 側が管理するので aria-current は持たない。 */}
+        <TabList
+          vertical
+          size="large"
+          aria-label="メインナビゲーション"
+          selectedValue={activeItem}
+          onTabSelect={(_, data) => onNavigate?.(String(data.value))}
+        >
           {items.map((item) => {
             const Icon = item.icon;
-            const isActive = item.id === activeItem;
             return (
-              <Button
+              <Tab
                 key={item.id}
-                type="button"
-                variant="ghost"
-                onClick={() => onNavigate?.(item.id)}
-                aria-current={isActive ? "page" : undefined}
-                className={
-                  "h-auto w-full justify-start gap-3 px-4 py-2.5 text-base font-medium " +
-                  (isActive
-                    ? "bg-secondary text-foreground"
-                    : "text-secondary-foreground hover:bg-secondary/50")
-                }
+                value={item.id}
+                icon={<Icon className="size-4" aria-hidden="true" />}
               >
-                <Icon className="size-4" aria-hidden="true" />
-                <span className="flex-1 text-left">{item.label}</span>
-                {isActive && <ChevronRight className="size-3" aria-hidden="true" />}
-              </Button>
+                {item.label}
+              </Tab>
             );
           })}
-        </nav>
+        </TabList>
       </div>
 
       {/* Bottom stats */}

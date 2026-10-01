@@ -1,6 +1,5 @@
 import { Info } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, Input } from "@fluentui/react-components";
 import type { OscSettings } from "@/lib/osc";
 import { SectionHeading } from "./section-heading";
 
@@ -21,22 +20,23 @@ const NUMERIC_FIELDS: { key: keyof OscSettings; label: string; min?: number }[] 
 ];
 
 // OSC送信の数値パラメータ群。値の保持は行わず、変更を親へ通知するだけにする。
+// Field を使うことで、ラベルと入力欄の関連付け（htmlFor/id）を自前で持たなくて済む。
 export function OscNumericSettings({ settings, onChange }: OscNumericSettingsProps) {
   return (
     <section className="grid gap-2">
       <SectionHeading icon={Info} label="数値設定" />
       <div className="grid gap-2 sm:grid-cols-2">
         {NUMERIC_FIELDS.map((field) => (
-          <div key={field.key} className="flex items-center gap-2">
-            <Label className="shrink-0 text-xs text-muted-foreground">{field.label}</Label>
+          <Field key={field.key} label={field.label} orientation="horizontal" size="small">
             <Input
               type="number"
               min={field.min}
-              value={settings[field.key] as number}
-              onChange={(e) => onChange(field.key, e.target.value)}
-              className="h-8 text-xs"
+              value={String(settings[field.key] as number)}
+              onChange={(_, data) => onChange(field.key, data.value)}
+              size="small"
+              className="min-w-0"
             />
-          </div>
+          </Field>
         ))}
       </div>
       {/* 0 が「無効」を意味することは値だけでは伝わらないため、補足を添える。 */}

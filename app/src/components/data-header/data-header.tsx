@@ -1,5 +1,16 @@
 import { Activity, Heart } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Divider, makeStyles } from "@fluentui/react-components";
+
+// Fluent の Divider は flex-grow: 1 を持つため、横並びの中に置くと横方向へ伸びてしまう。
+// 固定幅の区切り線として使えるよう、伸長を止めて高さを与える。
+// (Fluent のスタイルは CSS レイヤーの外に注入されるので、Tailwind の utilities では上書きできない)
+const useStyles = makeStyles({
+  verticalDivider: {
+    flexGrow: 0,
+    alignSelf: "center",
+    height: "32px",
+  },
+});
 
 export interface DataHeaderProps {
   bpm: number | null;
@@ -7,6 +18,8 @@ export interface DataHeaderProps {
 }
 
 export function DataHeader({ bpm, rrMs }: DataHeaderProps) {
+  const styles = useStyles();
+
   return (
     <div className="flex items-end justify-center gap-4">
       <div className="flex items-end gap-3">
@@ -18,7 +31,7 @@ export function DataHeader({ bpm, rrMs }: DataHeaderProps) {
           <span className="text-base leading-4 text-muted-foreground">BPM</span>
         </div>
       </div>
-      <Separator orientation="vertical" className="h-8 self-center" aria-hidden="true" />
+      <Divider vertical className={styles.verticalDivider} aria-hidden="true" />
       <div className="flex items-end gap-3">
         <Activity className="size-5.5 text-[#0090FF] mb-[2px]" aria-hidden="true" />
         <div className="flex items-end gap-0.5">

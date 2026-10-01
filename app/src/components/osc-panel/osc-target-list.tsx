@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Plus, Send, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Badge, Button, Input, Text } from "@fluentui/react-components";
 import { SectionHeading } from "./section-heading";
 
 export type OscTargetListProps = {
@@ -48,17 +47,16 @@ export function OscTargetList({ targets, onAdd, onRemove }: OscTargetListProps) 
         <div className="flex flex-col gap-1.5">
           {targets.map((target) => (
             <div key={target} className="flex items-center gap-1.5">
-              <Badge variant="secondary" className="font-mono text-xs">
-                {target}
+              <Badge appearance="tint" color="subtle" shape="rounded" size="medium">
+                <Text font="monospace">{target}</Text>
               </Badge>
-              <button
-                type="button"
-                onClick={() => onRemove(target)}
-                className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<X className="size-3" aria-hidden="true" />}
                 aria-label={`${target} を削除`}
-              >
-                <X className="size-3" />
-              </button>
+                onClick={() => onRemove(target)}
+              />
             </div>
           ))}
         </div>
@@ -67,20 +65,27 @@ export function OscTargetList({ targets, onAdd, onRemove }: OscTargetListProps) 
       )}
       <div className="flex gap-1.5">
         <Input
+          aria-label="送信先を追加"
           value={newTarget}
-          onChange={(e) => { setNewTarget(e.target.value); setError(""); }}
-          onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+          onChange={(_, data) => {
+            setNewTarget(data.value);
+            setError("");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleAdd();
+          }}
           placeholder="127.0.0.1:9000"
-          className="h-8 text-xs"
+          size="small"
+          className="min-w-0 grow"
         />
-        <button
-          type="button"
+        <Button
+          appearance="primary"
+          size="small"
+          icon={<Plus className="size-3" aria-hidden="true" />}
           onClick={handleAdd}
-          className="inline-flex shrink-0 items-center gap-1 rounded-md bg-primary px-3.5 py-1 text-xs font-bold text-primary-foreground hover:bg-primary/90"
         >
-          <Plus className="size-3" />
           追加
-        </button>
+        </Button>
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
     </section>

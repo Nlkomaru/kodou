@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, makeStyles, mergeClasses } from "@fluentui/react-components";
 import { formatTime, pointsWithinDomain } from "@/lib/heart-rate";
 import type { MetricPoint, TimeDomain } from "@/lib/heart-rate-types";
 
@@ -11,6 +11,22 @@ const X_TICK_INTERVAL_MS = 10_000;
 // この時間より長くデータが来ていなければ「データなし」区間として描く。
 // BLE通知はおよそ1秒間隔なので、通常の揺らぎを空白と誤認しない程度に余裕を持たせる。
 const GAP_THRESHOLD_MS = 3_000;
+
+// 見出し行は幅いっぱいのクリック領域にしたいが、Fluent Button は中央寄せ・最小幅・既定パディングを持つ。
+// Fluent のスタイルは CSS レイヤーの外に注入されるため Tailwind の utilities では打ち消せず、makeStyles を使う。
+const useStyles = makeStyles({
+  headerButton: {
+    width: "100%",
+    height: "auto",
+    minWidth: 0,
+    justifyContent: "space-between",
+    padding: "0 6px",
+  },
+  // 展開時だけ下に余白を作り、グラフとの間隔を確保する。
+  headerButtonExpanded: {
+    paddingBottom: "12px",
+  },
+});
 
 export type HrChartPanelStats = {
   max: string | null;
@@ -168,6 +184,7 @@ export function HrChartPanel({
   timeDomain,
 }: HrChartPanelProps) {
   const gradientId = useId();
+  const styles = useStyles();
   const [expanded, setExpanded] = useState(true);
   const { areaPath, baselineY, gap, gridValues, hasPoints, path, timeTicks, xFor, yFor } = chartGeometry(
     points,
@@ -178,11 +195,10 @@ export function HrChartPanel({
   return (
     <div className="flex min-w-0 flex-col rounded-xl bg-background p-6">
       <Button
-        type="button"
-        variant="ghost"
+        appearance="transparent"
+        className={mergeClasses(styles.headerButton, expanded && styles.headerButtonExpanded)}
         onClick={() => setExpanded((current) => !current)}
         aria-expanded={expanded}
-        className={`h-auto w-full justify-between rounded-lg px-1.5 hover:bg-transparent aria-expanded:bg-transparent aria-expanded:text-foreground active:bg-transparent active:translate-y-0 ${expanded ? "pb-3" : ""}`}
       >
         <span className="flex items-center gap-1.5 text-xl font-semibold text-foreground">
           <ChevronDown
