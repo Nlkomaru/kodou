@@ -1,6 +1,7 @@
 import { Card, CardHeader, Text } from "@fluentui/react-components";
 import { Controls } from "./controls";
 import { DevicePicker } from "./device-picker";
+import { ThemeSelector } from "./theme-selector";
 
 export function SettingsPage() {
   return (
@@ -20,6 +21,19 @@ export function SettingsPage() {
           <DevicePicker />
           <Controls />
         </div>
+      </Card>
+      <Card appearance="outline" size="large">
+        <CardHeader
+          header={
+            <Text size={400} weight="semibold">
+              テーマ
+            </Text>
+          }
+          description={
+            <Text size={200}>アプリ全体の配色を選択します。選択内容は次回起動時にも引き継がれます。</Text>
+          }
+        />
+        <ThemeSelector />
       </Card>
     </div>
   );

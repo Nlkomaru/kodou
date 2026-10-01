@@ -29,7 +29,8 @@ function App() {
       <UpdateDialog onInstall={installUpdate} onRestart={restartApp} onDismiss={dismissUpdate} />
       <div className="flex min-h-0 flex-1">
         <AppSidebar activeItem={page} onNavigate={setPage} />
-        <main className="min-w-0 flex-1 overflow-y-auto p-6">
+        {/* スクロールバーの有無で描画幅が変わらないよう、常に同じ余白を確保する。 */}
+        <main className="min-w-0 flex-1 overflow-y-auto p-6 [scrollbar-gutter:stable]">
           {page === "dashboard" && <DashboardPage />}
           {page === "history" && <HistoryPage />}
           {page === "osc" && <OscPage />}

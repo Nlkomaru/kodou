@@ -23,7 +23,7 @@ export function DataHeader({ bpm, rrMs }: DataHeaderProps) {
   return (
     <div className="flex items-end justify-center gap-4">
       <div className="flex items-end gap-3">
-        <Heart className="size-6 text-[#CE2C31] mb-[1.5px]" aria-hidden="true" />
+        <Heart className="size-6 text-[color:var(--chart-hr,#CE2C31)] mb-[1.5px]" aria-hidden="true" />
         <div className="flex items-end gap-0.5 font-medium">
           <span className="text-4xl leading-8 text-foreground">
             {bpm ?? "--"}
@@ -33,7 +33,7 @@ export function DataHeader({ bpm, rrMs }: DataHeaderProps) {
       </div>
       <Divider vertical className={styles.verticalDivider} aria-hidden="true" />
       <div className="flex items-end gap-3">
-        <Activity className="size-5.5 text-[#0090FF] mb-[2px]" aria-hidden="true" />
+        <Activity className="size-5.5 text-[color:var(--chart-rr,#0090FF)] mb-[2px]" aria-hidden="true" />
         <div className="flex items-end gap-0.5">
           <span className="text-2xl leading-none font-semibold text-foreground">{rrMs ?? "--"}</span>
           <span className="text-base leading-4 font-medium text-muted-foreground">ms</span>
