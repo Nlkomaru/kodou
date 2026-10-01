@@ -135,8 +135,8 @@ jobs:
         with:
           access_token: ${{ secrets.NIKOMARU_BITWARDEN_SECRET_MANAGER_ACCESS_TOKEN }}
           secrets: |
-            5dbb4f33-5d4d-4462-a6a2-b49900de5af5 > AWS_ACCESS_KEY_ID
-            45b746cb-55e7-4241-8f3f-b49900de5b8b > AWS_SECRET_ACCESS_KEY
+            7fca16ab-3904-4706-9849-b49900de563a > AWS_ACCESS_KEY_ID
+            769a462b-bf2d-466c-ae1f-b49900de56c8 > AWS_SECRET_ACCESS_KEY
 
       - name: Upload to R2
         env:
