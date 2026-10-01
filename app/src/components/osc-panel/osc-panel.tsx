@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { invoke } from "@tauri-apps/api/core";
-import { Card, CardHeader, Divider, Text } from "@fluentui/react-components";
+import { Divider } from "@fluentui/react-components";
 import type { AppConfig, OscParamKey, OscSettings } from "@/lib/osc";
 import { oscAddressesAtom, oscConfigAtom, oscEnabledAtom, oscSettingsAtom, oscTargetsAtom } from "@/state/osc";
+import { Section } from "@/components/section/section";
 import { OscEnableToggle } from "./osc-enable-toggle";
 import { OscFloatModeSelect } from "./osc-float-mode-select";
 import { OscNumericSettings } from "./osc-numeric-settings";
@@ -72,17 +73,14 @@ export function OscPanel() {
   };
 
   return (
-    <Card appearance="outline" size="large">
-      <CardHeader
-        header={
-          <Text size={400} weight="semibold">
-            OSC送信
-          </Text>
-        }
-        description={<Text size={200}>VRChatのAvatar Parameter OSCへ心拍データを送ります</Text>}
-        action={<OscEnableToggle checked={enabled} onCheckedChange={setEnabled} />}
-      />
-      <div className="flex flex-col gap-4">
+    <Section
+      level={1}
+      label="OSC送信"
+      description="VRChatのAvatar Parameter OSCへ心拍データを送ります"
+      action={<OscEnableToggle checked={enabled} onCheckedChange={setEnabled} />}
+    >
+      {/* 設定のまとまり同士は、枠ではなく区切り線と余白で分ける。 */}
+      <div className="flex flex-col gap-6">
         <OscTargetList
           targets={targets}
           onAdd={(target) => patchOsc({ targets: [...targets, target] })}
@@ -110,6 +108,6 @@ export function OscPanel() {
           }
         />
       </div>
-    </Card>
+    </Section>
   );
 }

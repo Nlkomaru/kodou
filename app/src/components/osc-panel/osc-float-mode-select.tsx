@@ -1,7 +1,7 @@
 import { Radio } from "lucide-react";
 import { Dropdown, Option } from "@fluentui/react-components";
 import type { OscSettings } from "@/lib/osc";
-import { SectionHeading } from "./section-heading";
+import { Section } from "@/components/section/section";
 
 export type OscFloatModeSelectProps = {
   value: OscSettings["hrFloatMode"];
@@ -21,11 +21,11 @@ export function OscFloatModeSelect({ value, onChange }: OscFloatModeSelectProps)
   const selected = FLOAT_MODES.find((mode) => mode.value === value);
 
   return (
-    <section className="grid gap-2">
-      <SectionHeading icon={Radio} label="HRFloat モード" />
+    <Section icon={Radio} label="HRFloat モード">
       <Dropdown
         aria-label="HRFloat モード"
         size="small"
+        className="max-w-xs"
         value={selected?.text ?? ""}
         selectedOptions={[value]}
         onOptionSelect={(_, data) => {
@@ -39,6 +39,6 @@ export function OscFloatModeSelect({ value, onChange }: OscFloatModeSelectProps)
           </Option>
         ))}
       </Dropdown>
-    </section>
+    </Section>
   );
 }

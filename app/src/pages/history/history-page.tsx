@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useAtomValue } from "jotai";
 import { RecordingList } from "@/components/recording-list/recording-list";
+import { Section } from "@/components/section/section";
 import { isTauriRuntime } from "@/lib/heart-rate";
 import type { RecordingFile } from "@/lib/heart-rate-types";
 import { recordingPathAtom } from "@/state/heart-rate";
@@ -27,13 +28,19 @@ export function HistoryPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex max-w-4xl flex-col gap-6">
       {error && <p className="text-xs text-destructive">{error}</p>}
-      <RecordingList
-        recordings={recordings}
-        activePath={recordingPath}
-        onReveal={handleReveal}
-      />
+      <Section
+        level={1}
+        label="履歴"
+        description="記録した心拍データは、日付ごとにParquetファイルとして保存されます。"
+      >
+        <RecordingList
+          recordings={recordings}
+          activePath={recordingPath}
+          onReveal={handleReveal}
+        />
+      </Section>
     </div>
   );
 }

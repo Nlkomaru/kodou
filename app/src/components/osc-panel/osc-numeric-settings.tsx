@@ -1,7 +1,7 @@
 import { Info } from "lucide-react";
 import { Field, Input } from "@fluentui/react-components";
 import type { OscSettings } from "@/lib/osc";
-import { SectionHeading } from "./section-heading";
+import { Section } from "@/components/section/section";
 
 export type OscNumericSettingsProps = {
   settings: OscSettings;
@@ -23,9 +23,8 @@ const NUMERIC_FIELDS: { key: keyof OscSettings; label: string; min?: number }[] 
 // Field を使うことで、ラベルと入力欄の関連付け（htmlFor/id）を自前で持たなくて済む。
 export function OscNumericSettings({ settings, onChange }: OscNumericSettingsProps) {
   return (
-    <section className="grid gap-2">
-      <SectionHeading icon={Info} label="数値設定" />
-      <div className="grid gap-2 sm:grid-cols-2">
+    <Section icon={Info} label="数値設定">
+      <div className="grid gap-3 sm:grid-cols-2">
         {NUMERIC_FIELDS.map((field) => (
           <Field key={field.key} label={field.label} orientation="horizontal" size="small">
             <Input
@@ -43,6 +42,6 @@ export function OscNumericSettings({ settings, onChange }: OscNumericSettingsPro
       <p className="text-xs text-muted-foreground">
         自動停止: BLE切断からこの秒数だけ再接続できないとモニタリングを停止します。0 で無効（無限に再接続）。
       </p>
-    </section>
+    </Section>
   );
 }
