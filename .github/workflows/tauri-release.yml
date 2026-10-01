@@ -135,7 +135,8 @@ jobs:
       # tauri-action は cargo tauri build を子プロセスとして起動するだけなので、
       # with: 経由で渡す必要はなく、プロセス環境変数のまま読み取られる。
       - name: Get secrets from Bitwarden Secrets Manager
-        uses: bitwarden/sm-action@v2
+        # v2 の SDK は macOS ARM 用依存が欠けるため、各ランナー向けバイナリを持つ v3 を使う。
+        uses: bitwarden/sm-action@v3.0.1
         with:
           access_token: ${{ secrets.NIKOMARU_BITWARDEN_SECRET_MANAGER_ACCESS_TOKEN }}
           secrets: |
