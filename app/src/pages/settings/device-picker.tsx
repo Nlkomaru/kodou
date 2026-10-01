@@ -39,9 +39,12 @@ export function DevicePicker() {
       </Field>
 
       {selectedDevice && (
-        <div className="flex flex-col gap-2 text-sm font-bold text-muted-foreground sm:flex-row sm:items-center">
-          <Activity className="size-4 text-primary" aria-hidden="true" />
-          <span>{selectedDevice.address}</span>
+        // 接続情報は値の読み上げに徹し、見た目の主張は見出しに譲る。
+        <div className="flex flex-col gap-1 text-xs text-secondary-foreground sm:flex-row sm:items-center sm:gap-3">
+          <span className="flex items-center gap-1.5">
+            <Activity className="size-3.5" aria-hidden="true" />
+            {selectedDevice.address}
+          </span>
           <span>{selectedDevice.rssi == null ? "RSSI不明" : `${selectedDevice.rssi} dBm`}</span>
         </div>
       )}
