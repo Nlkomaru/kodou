@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { UpdateDialog } from "@/components/update-dialog/update-dialog";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@fluentui/react-components";
+import { STATUS_TOASTER_ID } from "@/hooks/use-notification";
 import { DashboardPage } from "@/pages/dashboard/dashboard-page";
 import { HistoryPage } from "@/pages/history/history-page";
 import { OscPage } from "@/pages/osc/osc-page";
@@ -35,7 +36,7 @@ function App() {
           {page === "settings" && <SettingsPage />}
         </main>
       </div>
-      <Toaster />
+      <Toaster toasterId={STATUS_TOASTER_ID} position="bottom-end" />
     </div>
   );
 }

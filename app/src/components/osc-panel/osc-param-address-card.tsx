@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Badge, Button, Card, Input } from "@fluentui/react-components";
 import type { OscParamMeta } from "@/lib/osc";
 
 export type OscParamAddressCardProps = {
@@ -26,28 +25,29 @@ export function OscParamAddressCard({ meta, addresses, onAdd, onRemove }: OscPar
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg bg-muted/30 px-5 py-4 ring-1 ring-border/70">
+    <Card appearance="filled-alternative" size="small" className="min-w-0">
       <div className="flex items-center justify-between gap-1">
         <span className="text-xs font-bold">{meta.label}</span>
         {addresses.length > 0 && (
-          <Badge variant="secondary" className="h-4 px-1 text-[10px]">{addresses.length}件</Badge>
+          <Badge appearance="tint" color="subtle" shape="rounded" size="small">
+            {addresses.length}件
+          </Badge>
         )}
       </div>
       {addresses.length > 0 ? (
         <div className="flex flex-col gap-1">
           {addresses.map((address) => (
             <div key={address} className="flex items-center gap-1">
-              <code className="min-w-0 break-all text-[11px] leading-relaxed text-muted-foreground">
+              <code className="min-w-0 grow break-all text-[11px] leading-relaxed text-muted-foreground">
                 {address}
               </code>
-              <button
-                type="button"
-                onClick={() => onRemove(address)}
-                className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<X className="size-2.5" aria-hidden="true" />}
                 aria-label={`${address} を削除`}
-              >
-                <X className="size-2.5" />
-              </button>
+                onClick={() => onRemove(address)}
+              />
             </div>
           ))}
         </div>
@@ -56,21 +56,24 @@ export function OscParamAddressCard({ meta, addresses, onAdd, onRemove }: OscPar
       )}
       <div className="flex gap-1">
         <Input
+          aria-label={`${meta.label} のアドレス`}
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+          onChange={(_, data) => setDraft(data.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleAdd();
+          }}
           placeholder="/avatar/parameters/..."
-          className="h-7 text-[11px]"
+          size="small"
+          className="min-w-0 grow"
         />
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="inline-flex shrink-0 items-center justify-center rounded-md bg-primary px-3 text-[11px] font-bold text-primary-foreground hover:bg-primary/90"
+        <Button
+          appearance="primary"
+          size="small"
+          icon={<Plus className="size-3" aria-hidden="true" />}
           aria-label={`${meta.label} にアドレスを追加`}
-        >
-          <Plus className="size-3" />
-        </button>
+          onClick={handleAdd}
+        />
       </div>
-    </div>
+    </Card>
   );
 }

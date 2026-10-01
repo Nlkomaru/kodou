@@ -1,14 +1,9 @@
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, X } from "lucide-react";
 import { useAtomValue } from "jotai";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+  Button, Dialog, DialogSurface, DialogBody, DialogTitle,
+  DialogContent, DialogActions,
+} from "@fluentui/react-components";
 import { updateErrorAtom, updateInfoAtom, updateProgressAtom, updateStageAtom } from "@/state/updater";
 
 type UpdateDialogProps = {
@@ -32,45 +27,44 @@ export function UpdateDialog({ onInstall, onRestart, onDismiss }: UpdateDialogPr
   const isDownloading = stage === "downloading";
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next && !isDownloading) onDismiss(); }}>
-      <DialogContent
-        showCloseButton={!isDownloading}
-        onEscapeKeyDown={(e) => { if (isDownloading) e.preventDefault(); }}
-        onInteractOutside={(e) => { if (isDownloading) e.preventDefault(); }}
-      >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {isDownloading ? <RefreshCw className="size-4 animate-spin" /> : <Download className="size-4" />}
+    <Dialog open={open} modalType={isDownloading ? "alert" : "modal"}
+      onOpenChange={(_event, data) => { if (!data.open && !isDownloading) onDismiss(); }}>
+      <DialogSurface>
+        <DialogBody>
+          <DialogTitle action={!isDownloading ? (
+            <Button appearance="subtle" icon={<X size={16} />} aria-label="閉じる" onClick={onDismiss} />
+          ) : null}>
+            {isDownloading ? <RefreshCw className="mr-2 inline-block size-4 animate-spin" /> : <Download className="mr-2 inline-block size-4" />}
             {stage === "available" && `新しいバージョン ${info?.version} が利用できます`}
             {stage === "downloading" && "アップデートをダウンロードしています…"}
             {stage === "ready" && "アップデートの準備ができました"}
             {stage === "error" && "アップデートに失敗しました"}
           </DialogTitle>
-          <DialogDescription className="whitespace-pre-wrap">
+          <DialogContent className="whitespace-pre-wrap">
             {stage === "available" && (info?.notes || "リリースノートはありません。")}
             {stage === "downloading" &&
               (progress === null ? "しばらくお待ちください。" : `${Math.round(progress * 100)}% 完了`)}
             {stage === "ready" && "アプリを再起動すると新しいバージョンが適用されます。"}
             {stage === "error" && error}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
+          </DialogContent>
+        <DialogActions>
           {stage === "available" && (
             <>
-              <Button variant="ghost" onClick={onDismiss}>
+              <Button appearance="subtle" onClick={onDismiss}>
                 あとで
               </Button>
-              <Button onClick={onInstall}>今すぐ更新</Button>
+              <Button appearance="primary" onClick={onInstall}>今すぐ更新</Button>
             </>
           )}
-          {stage === "ready" && <Button onClick={onRestart}>再起動して適用</Button>}
+          {stage === "ready" && <Button appearance="primary" onClick={onRestart}>再起動して適用</Button>}
           {stage === "error" && (
-            <Button variant="ghost" onClick={onDismiss}>
+            <Button appearance="subtle" onClick={onDismiss}>
               閉じる
             </Button>
           )}
-        </DialogFooter>
-      </DialogContent>
+        </DialogActions>
+        </DialogBody>
+      </DialogSurface>
     </Dialog>
   );
 }

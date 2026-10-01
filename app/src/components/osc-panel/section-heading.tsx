@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@fluentui/react-components";
 
 export type SectionHeadingProps = {
   icon: LucideIcon;
@@ -15,7 +15,7 @@ export function SectionHeading({ icon: Icon, label, count }: SectionHeadingProps
       <Icon className="size-3.5" aria-hidden="true" />
       {label}
       {count !== undefined && (
-        <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-semibold">
+        <Badge appearance="tint" color="subtle" shape="rounded" size="small">
           {count}件
         </Badge>
       )}
