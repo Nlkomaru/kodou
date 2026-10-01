@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { Button, makeStyles, mergeClasses } from "@fluentui/react-components";
+import { Button, Card, makeStyles, mergeClasses } from "@fluentui/react-components";
 import { formatTime } from "@/lib/heart-rate";
 import type { MetricPoint, TimeDomain } from "@/lib/heart-rate-types";
 
@@ -227,7 +227,7 @@ export function HrChartPanel({
   const { areaPath, gridValues, hasPoints, path, timeTicks, xFor, yFor } = chartGeometry(points, smooth, timeDomain);
 
   return (
-    <div className="flex min-w-0 flex-col overflow-hidden rounded-xl bg-background p-6">
+    <Card appearance="filled" size="large" className="min-w-0">
       <Button
         appearance="transparent"
         className={mergeClasses(styles.headerButton, expanded && styles.headerButtonExpanded)}
@@ -327,6 +327,6 @@ export function HrChartPanel({
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

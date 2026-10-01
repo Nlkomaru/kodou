@@ -9,7 +9,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Tab, TabList } from "@fluentui/react-components";
-import kodouLogo from "@/assets/kodou-logo.png";
 
 export interface SidebarNavItem {
   id: string;
@@ -53,17 +52,10 @@ export function Sidebar({
   return (
     <div className="flex h-full w-[280px] flex-col justify-between border-r border-border bg-background px-4 py-6">
       <div className="flex flex-col gap-4">
-        {/* Logo: 下のナビゲーションと同じ px-4 の内側余白に揃える。 */}
-        <div className="flex items-center gap-4 px-4">
-          <img
-            src={kodouLogo}
-            alt="Kodou"
-            className="size-12 rounded-md"
-          />
-          <div className="flex flex-col">
-            <span className="text-2xl font-bold leading-8 text-foreground">Kodou</span>
-            <span className="text-xs text-secondary-foreground">Heart rate monitor</span>
-          </div>
+        {/* タイトル: 下のナビゲーションと同じ px-4 の内側余白に揃える。 */}
+        <div className="px-4">
+          <span className="block text-2xl font-bold leading-8 text-foreground">Kodou</span>
+          <span className="block text-xs text-secondary-foreground">Heart rate monitor</span>
         </div>
 
         {/* Status: ナビゲーション項目と横幅・左端を揃えるため、外側の余白は付けない。 */}

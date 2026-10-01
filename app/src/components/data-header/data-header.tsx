@@ -8,7 +8,7 @@ const useStyles = makeStyles({
   verticalDivider: {
     flexGrow: 0,
     alignSelf: "center",
-    height: "32px",
+    height: "64px",
   },
 });
 
@@ -22,21 +22,25 @@ export function DataHeader({ bpm, rrMs }: DataHeaderProps) {
 
   return (
     <div className="flex items-end justify-center gap-4">
-      <div className="flex items-end gap-3">
+      <div className="flex items-end gap-2">
         <Heart className="size-6 text-[color:var(--chart-hr,#CE2C31)] mb-[1.5px]" aria-hidden="true" />
-        <div className="flex items-end gap-0.5 font-medium">
-          <span className="text-4xl leading-8 text-foreground">
+        {/* ヒーロー数値は Fluent の Display（68px/76px）に合わせ、単位は Caption1 で添える。 */}
+        <div className="flex items-end gap-1.5">
+          <span className="text-[68px] leading-[76px] font-semibold text-foreground tabular-nums">
             {bpm ?? "--"}
           </span>
-          <span className="text-base leading-4 text-muted-foreground">BPM</span>
+          <span className="text-xs leading-4 text-muted-foreground mb-2">BPM</span>
         </div>
       </div>
       <Divider vertical className={styles.verticalDivider} aria-hidden="true" />
-      <div className="flex items-end gap-3">
-        <Activity className="size-5.5 text-[color:var(--chart-rr,#0090FF)] mb-[2px]" aria-hidden="true" />
-        <div className="flex items-end gap-0.5">
-          <span className="text-2xl leading-none font-semibold text-foreground">{rrMs ?? "--"}</span>
-          <span className="text-base leading-4 font-medium text-muted-foreground">ms</span>
+      <div className="flex items-end gap-2">
+        <Activity className="size-5 text-[color:var(--chart-rr,#0090FF)] mb-[3px]" aria-hidden="true" />
+        {/* 副数値は Title1（28px/36px）に合わせ、ヒーローとの階層を一段下げる。 */}
+        <div className="flex items-end gap-1.5">
+          <span className="text-[28px] leading-9 font-semibold text-foreground tabular-nums">
+            {rrMs ?? "--"}
+          </span>
+          <span className="text-xs leading-4 font-medium text-muted-foreground mb-1">ms</span>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
+import { Fragment } from "react";
 import { ChartColumn, Circle, FileText, FolderOpen } from "lucide-react";
-import { Badge, Button } from "@fluentui/react-components";
+import { Badge, Button, Card, Divider } from "@fluentui/react-components";
 import type { RecordingFile } from "@/lib/heart-rate-types";
 import {
   formatBpm,
@@ -21,9 +22,9 @@ export interface RecordingListProps {
 export function RecordingList({ recordings, activePath, onReveal }: RecordingListProps) {
   if (recordings.length === 0) {
     return (
-      <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl bg-muted/40 p-8 text-center">
+      <div className="flex min-h-64 flex-col items-center justify-center gap-2 text-center">
         <ChartColumn className="size-8 text-muted-foreground" aria-hidden="true" />
-        <p className="text-sm font-medium text-secondary-foreground">まだ記録がありません。</p>
+        <p className="text-sm font-semibold text-secondary-foreground">まだ記録がありません。</p>
         <p className="text-xs text-muted-foreground">
           心拍センサーへ接続すると、Parquetファイルとして自動で記録されます。
         </p>
@@ -32,22 +33,27 @@ export function RecordingList({ recordings, activePath, onReveal }: RecordingLis
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {groupRecordingsByDate(recordings).map((group) => (
         <section key={group.date} className="flex flex-col gap-2">
-          <h2 className="text-xs font-medium text-muted-foreground">
+          <h2 className="text-xs font-semibold text-muted-foreground">
             {formatRecordingDate(group.date)}
           </h2>
-          <ul className="flex flex-col gap-1.5">
-            {group.recordings.map((recording) => (
-              <RecordingRow
-                key={recording.path}
-                recording={recording}
-                isRecording={recording.path === activePath}
-                onReveal={onReveal}
-              />
-            ))}
-          </ul>
+          {/* 記録は1つの面にまとめ、行の間は区切り線で仕切る。 */}
+          <Card appearance="filled" className="min-w-0">
+            <ul className="flex flex-col">
+              {group.recordings.map((recording, index) => (
+                <Fragment key={recording.path}>
+                  {index > 0 && <Divider />}
+                  <RecordingRow
+                    recording={recording}
+                    isRecording={recording.path === activePath}
+                    onReveal={onReveal}
+                  />
+                </Fragment>
+              ))}
+            </ul>
+          </Card>
         </section>
       ))}
     </div>
@@ -64,7 +70,7 @@ function RecordingRow({ recording, isRecording, onReveal }: RecordingRowProps) {
   const { summary } = recording;
 
   return (
-    <li className="flex items-center gap-3 rounded-xl bg-muted/40 px-6 py-4">
+    <li className="flex items-center gap-3 py-3">
       <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="truncate text-sm font-medium text-secondary-foreground">

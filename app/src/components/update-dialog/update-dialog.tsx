@@ -34,7 +34,8 @@ export function UpdateDialog({ onInstall, onRestart, onDismiss }: UpdateDialogPr
           <DialogTitle action={!isDownloading ? (
             <Button appearance="subtle" icon={<X size={16} />} aria-label="閉じる" onClick={onDismiss} />
           ) : null}>
-            {isDownloading ? <RefreshCw className="mr-2 inline-block size-4 animate-spin" /> : <Download className="mr-2 inline-block size-4" />}
+            {/* DialogTitle に icon スロットは無いため、本文側で小さめのアイコンを添えるだけにする。 */}
+            {isDownloading ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />}
             {stage === "available" && `新しいバージョン ${info?.version} が利用できます`}
             {stage === "downloading" && "アップデートをダウンロードしています…"}
             {stage === "ready" && "アップデートの準備ができました"}

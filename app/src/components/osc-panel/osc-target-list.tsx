@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus, Send, X } from "lucide-react";
 import { Badge, Button, Input, Text } from "@fluentui/react-components";
-import { SectionHeading } from "./section-heading";
+import { Section } from "@/components/section/section";
 
 export type OscTargetListProps = {
   /** 現在の送信先一覧（"IP:ポート" 形式）。 */
@@ -41,8 +41,7 @@ export function OscTargetList({ targets, onAdd, onRemove }: OscTargetListProps) 
   };
 
   return (
-    <section className="grid gap-2">
-      <SectionHeading icon={Send} label="送信先" count={targets.length} />
+    <Section icon={Send} label="送信先" count={targets.length}>
       {targets.length > 0 ? (
         <div className="flex flex-col gap-1.5">
           {targets.map((target) => (
@@ -88,6 +87,6 @@ export function OscTargetList({ targets, onAdd, onRemove }: OscTargetListProps) 
         </Button>
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
-    </section>
+    </Section>
   );
 }

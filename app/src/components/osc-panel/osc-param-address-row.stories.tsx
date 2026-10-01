@@ -1,20 +1,20 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { OSC_PARAM_META } from "@/lib/osc";
-import { OscParamAddressCard } from "./osc-param-address-card";
+import { OscParamAddressRow } from "./osc-param-address-row";
 
 // 代表として HR パラメータを使う。表示ロジックはキーに依存しない。
 const HR_META = OSC_PARAM_META.find((meta) => meta.key === "hr")!;
 
 const meta = {
-  title: "OSC/OscParamAddressCard",
-  component: OscParamAddressCard,
-  parameters: { layout: "centered" },
+  title: "OSC/OscParamAddressRow",
+  component: OscParamAddressRow,
+  parameters: { layout: "padded" },
   args: {
     meta: HR_META,
     onAdd: () => {},
     onRemove: () => {},
   },
-} satisfies Meta<typeof OscParamAddressCard>;
+} satisfies Meta<typeof OscParamAddressRow>;
 
 export default meta;
 
