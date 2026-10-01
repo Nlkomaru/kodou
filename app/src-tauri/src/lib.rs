@@ -260,11 +260,17 @@ fn clear_monitor_session(app: &AppHandle, session_id: u64) {
     let Ok(mut monitor) = state.monitor.lock() else {
         return;
     };
-    if monitor
+    if let Some(current) = monitor
         .as_ref()
-        .is_some_and(|current| current.session_id == session_id)
+        .filter(|current| current.session_id == session_id)
     {
+        // アプリ終了時の停止は復元対象なので、明示的な停止通知がない自動停止だけを保存する。
+        let stopped_automatically = !*current.stop_tx.borrow();
         monitor.take();
+        // ロック中に通知し、新しく開始したセッションを古い停止通知で上書きしない。
+        if stopped_automatically {
+            let _ = app.emit("monitoring_stopped", ());
+        }
     }
 }
 

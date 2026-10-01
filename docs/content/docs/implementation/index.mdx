@@ -35,6 +35,8 @@ React 側へイベントとして心拍データを流します。
 - `start_heart_rate_monitor` command で選択デバイスの購読を開始する。
 - `heart-rate-status` イベントで接続状態を表示する。常設の表示はサイドバー、状態の変化は `useStatusToast`（Fluent UI のトースト）で通知する。表示中は通知の種類ごとに内容を更新し、状態が変わっても積み上がらないようにしています。
 - `heart-rate-reading` イベントでBPM、RR interval、battery、sensor contactを更新する。
+- 起動時は `useAutoConnect` が保存済みデバイスと起動時の設定・停止状態を読み取り、自動接続するかを判断します。設定は `startupSettingsAtom` で管理し、ローカルストレージに永続化します。
+- 手動の接続・停止はコマンドの成功後に停止状態を更新します。バックエンドで計測が自動終了した場合は `monitoring_stopped` イベントで停止状態を保存します。一時的な BLE 切断やアプリ終了ではこのイベントを送らず、古いセッションの終了で新しいセッションを停止扱いにすることもありません。
 
 ### UI とテーマ
 
