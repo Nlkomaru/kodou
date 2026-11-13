@@ -2,7 +2,7 @@
   "name": "kodou-workspace",
   "private": true,
   "version": "0.1.0",
-  "packageManager": "pnpm@10.26.1",
+  "packageManager": "pnpm@12.18.0",
   "scripts": {
     "dev": "pnpm --dir app tauri dev",
     "docs": "pnpm --dir docs dev"

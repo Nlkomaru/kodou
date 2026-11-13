@@ -4,6 +4,8 @@ node_modules/
 # App build output
 app/dist/
 app/dist-ssr/
+.cloudflare/
+app/storybook-static/
 
 # Generated agent prompt files
 AGENTS.md
