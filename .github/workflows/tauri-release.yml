@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: tauri-release-${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.event.release.tag_name }}
@@ -75,16 +76,11 @@ jobs:
           mv "$config.tmp" "$config"
           echo "app version set to $version"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup vp
+        uses: voidzero-dev/setup-vp@v1.22.0
         with:
-          version: 10.26.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
+          node-version: "26"
+          cache: true
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup Rust
@@ -99,9 +95,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libdbus-1-dev
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       # Cargo 由来のキャッシュ。タグ起動のためコンパイル済み依存はヒットしにくいが、
       # registry のダウンロード短縮と同一タグ再実行・手動再ビルドで効く。
@@ -130,18 +123,15 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      # 自動更新パッケージ(.sig)の署名に使う鍵。BSM(nikomaru プロジェクト)から取得し、
+      # 自動更新パッケージ(.sig)の署名に使う鍵。SSM から取得し、
       # このステップ以降のジョブ内 env として TAURI_SIGNING_PRIVATE_KEY(_PASSWORD) に入る。
       # tauri-action は cargo tauri build を子プロセスとして起動するだけなので、
       # with: 経由で渡す必要はなく、プロセス環境変数のまま読み取られる。
-      - name: Get secrets from Bitwarden Secrets Manager
-        # v2 の SDK は macOS ARM 用依存が欠けるため、各ランナー向けバイナリを持つ v3 を使う。
-        uses: bitwarden/sm-action@v3.0.1
+      - name: Load Production Secrets
+        uses: nlkomaru/secret-manager@v2
         with:
-          access_token: ${{ secrets.NIKOMARU_BITWARDEN_SECRET_MANAGER_ACCESS_TOKEN }}
-          secrets: |
-            14b5e365-5602-43ce-9eed-b49900de5c21 > TAURI_SIGNING_PRIVATE_KEY
-            91f2e6f5-cfbc-400e-bc35-b49900de5cbd > TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          project: "kodou"
+          env: "production"
 
       - name: Build and upload Tauri bundles
         uses: tauri-apps/tauri-action@v0
